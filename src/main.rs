@@ -1,8 +1,8 @@
 use std::io::{stdin, stdout, Write};
 use termion::{
-    color::{Green, Red},
+    color::Red,
     event::{Event, Key},
-    input::{MouseTerminal, TermRead},
+    input::TermRead,
     raw::IntoRawMode,
     screen::IntoAlternateScreen,
 };
@@ -16,13 +16,11 @@ enum Mode {
 
 fn main() {
     let stdin = stdin();
-    let mut stdout = MouseTerminal::from(
-        stdout()
-            .into_raw_mode()
-            .unwrap()
-            .into_alternate_screen()
-            .unwrap(),
-    );
+    let mut stdout = stdout()
+        .into_raw_mode()
+        .unwrap()
+        .into_alternate_screen()
+        .unwrap();
 
     write!(
         stdout,
