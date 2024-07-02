@@ -1,5 +1,5 @@
 use std::{collections::HashMap, io::{self, stdout, Result, Stdout, Write}, process::exit};
-use crossterm::{cursor::{MoveLeft, MoveTo, MoveToRow, SetCursorStyle}, event::{read, Event, KeyCode}, style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor}, terminal, ExecutableCommand, QueueableCommand};
+use crossterm::{cursor::{MoveLeft, MoveTo, SetCursorStyle}, event::{read, Event, KeyCode}, style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor}, terminal, ExecutableCommand, QueueableCommand};
 use terminal::{Clear, ClearType, EnterAlternateScreen};
 
 
@@ -24,23 +24,11 @@ pub enum Mode {
     Command,
 }
 
-#[derive(Debug)]
-pub struct Vec2 {
-    pub x: u16,
-    pub y: u16,
-}
-
-impl Vec2 {
-    fn new(x: u16, y: u16) -> Vec2 {
-        Vec2 { x, y }
-    }
-}
-
 pub struct Editor {
     mode: Mode,
     stdout: Stdout,
     text: String,
-    cursor: Vec2,
+    cursor: (u16, u16),
     size: (u16, u16),
     nmap: HashMap<KeyCode, Action>,
     imap: HashMap<KeyCode, Action>
@@ -63,7 +51,7 @@ impl Editor {
             mode: Mode::Navigate,
             text: String::new(),
             size: terminal::size()?,
-            cursor: Vec2::new(0, 0),
+            cursor: (0, 0),
             nmap: HashMap::from([
                 (KeyCode::Char('k'), Action::MoveUp),
                 (KeyCode::Char('j'), Action::MoveDown),
@@ -105,23 +93,23 @@ impl Editor {
     fn handle_action(&mut self, action: Action) -> io::Result<()> {
         _ = match action {
             Action::MoveUp => {
-                if self.cursor.y > 0 {
-                    self.cursor.y -= 1;
+                if self.cursor.1 > 0 {
+                    self.cursor.1 -= 1;
                 }
             },
             Action::MoveDown => {
-                if self.cursor.y < self.size.1 - 1 {
-                    self.cursor.y += 1;
+                if self.cursor.1 < self.size.1 - 1 {
+                    self.cursor.1 += 1;
                 }
             },
             Action::MoveLeft => {
-                if self.cursor.x > 0 {
-                    self.cursor.x -= 1;
+                if self.cursor.0 > 0 {
+                    self.cursor.0 -= 1;
                 }
             },
             Action::MoveRight => {
-                if self.cursor.x < self.size.0 - 1  {
-                    self.cursor.x += 1;
+                if self.cursor.0 < self.size.0 - 1  {
+                    self.cursor.0 += 1;
                 }
             },
             Action::SetMode(mode) => {
@@ -163,7 +151,7 @@ impl Editor {
     /// begin event loop, listen and handle events
     pub fn listen(&mut self) -> io::Result<()> {
         loop {
-            self.stdout.execute(MoveTo(self.cursor.x, self.cursor.y))?;
+            self.stdout.execute(MoveTo(self.cursor.0, self.cursor.1))?;
 
             let event = read()?;
 
@@ -195,7 +183,7 @@ impl Editor {
                     Mode::Command => " COM "
                 }))?
                 .queue(ResetColor)?
-                .queue(MoveTo(self.cursor.x, self.cursor.y))?
+                .queue(MoveTo(self.cursor.0, self.cursor.1))?
 
                 // submit
                 .flush()?;
