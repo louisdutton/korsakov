@@ -1,20 +1,7 @@
-use std::{collections::HashMap, io::{self, stdout, Result, Stdout, Write}, process::exit};
-use crossterm::{cursor::{MoveLeft, MoveTo, SetCursorStyle}, event::{read, Event, KeyCode}, style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor}, terminal, ExecutableCommand, QueueableCommand};
+use std::{collections::HashMap, io::{self, stdout, Result, Stdout, Write}};
+use crossterm::{cursor::{MoveTo, SetCursorStyle}, event::{read, Event, KeyCode}, style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor}, terminal, ExecutableCommand, QueueableCommand};
 use terminal::{Clear, ClearType, EnterAlternateScreen};
-
-
-#[derive(Debug, PartialEq, Copy, Clone)]
-enum Action {
-    MoveUp,
-    MoveDown,
-    MoveLeft,
-    MoveRight,
-
-    Paste,
-
-    SetMode(Mode),
-    Quit
-}
+use crate::actions::{exec, Action};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -26,10 +13,10 @@ pub enum Mode {
 
 pub struct Editor {
     mode: Mode,
-    stdout: Stdout,
-    text: String,
-    cursor: (u16, u16),
-    size: (u16, u16),
+    pub stdout: Stdout,
+    pub text: String,
+    pub cursor: (u16, u16),
+    pub size: (u16, u16),
     nmap: HashMap<KeyCode, Action>,
     imap: HashMap<KeyCode, Action>
 }
@@ -37,13 +24,12 @@ pub struct Editor {
 impl Editor {
     pub fn new() -> Result<Editor> {
         let mut stdout = stdout();
-
         terminal::enable_raw_mode()?;
-
         stdout
             .queue(EnterAlternateScreen)?
             .queue(Clear(ClearType::All))?
             .queue(SetCursorStyle::SteadyBlock)?
+            .queue(MoveTo(0, 0))?
             .flush()?;
 
         Ok(Editor {
@@ -53,12 +39,13 @@ impl Editor {
             size: terminal::size()?,
             cursor: (0, 0),
             nmap: HashMap::from([
-                (KeyCode::Char('k'), Action::MoveUp),
-                (KeyCode::Char('j'), Action::MoveDown),
-                (KeyCode::Char('h'), Action::MoveLeft),
-                (KeyCode::Char('l'), Action::MoveRight),
+                (KeyCode::Char('k'), Action::MoveUp(1)),
+                (KeyCode::Char('j'), Action::MoveDown(1)),
+                (KeyCode::Char('h'), Action::MoveLeft(1)),
+                (KeyCode::Char('l'), Action::MoveRight(1)),
                 (KeyCode::Char('p'), Action::Paste),
                 (KeyCode::Char('q'), Action::Quit),
+                (KeyCode::Char('x'), Action::Delete),
                 (KeyCode::Char('i'), Action::SetMode(Mode::Insert)),
             ]),
             imap: HashMap::from([
@@ -68,12 +55,12 @@ impl Editor {
     }
 
     /// Sets the input mode
-    fn set_mode(&mut self, mode: Mode) -> io::Result<()> {
+    pub fn set_mode(&mut self, mode: Mode) -> io::Result<()> {
         _ = match mode {
             Mode::Navigate => {
                 self.stdout.queue(SetCursorStyle::SteadyBlock)?;
-                if mode == Mode::Insert {
-                   self.stdout.queue(MoveLeft(1))?;
+                if self.mode == Mode::Insert {
+                    exec(self, Action::MoveLeft(1))?;
                 }
             },
             Mode::Insert => {
@@ -90,103 +77,82 @@ impl Editor {
         Ok(())
     }
 
-    fn handle_action(&mut self, action: Action) -> io::Result<()> {
-        _ = match action {
-            Action::MoveUp => {
-                if self.cursor.1 > 0 {
-                    self.cursor.1 -= 1;
-                }
-            },
-            Action::MoveDown => {
-                if self.cursor.1 < self.size.1 - 1 {
-                    self.cursor.1 += 1;
-                }
-            },
-            Action::MoveLeft => {
-                if self.cursor.0 > 0 {
-                    self.cursor.0 -= 1;
-                }
-            },
-            Action::MoveRight => {
-                if self.cursor.0 < self.size.0 - 1  {
-                    self.cursor.0 += 1;
-                }
-            },
-            Action::SetMode(mode) => {
-                self.set_mode(mode)?
-            },
-            Action::Paste => {
-                self.stdout.queue(Print(self.text.as_str()))?;
-            },
-            Action::Quit => {
-                exit(1)
-            }
-        };
-        Ok(())
-    }
 
-    fn handle_insert_event(&mut self, event: Event) -> Result<()> {
-        _ = match event {
-            Event::Key(key) => match key.code {
-                KeyCode::Esc => {
-                    _ = self.set_mode(Mode::Navigate);
-                    self.stdout.queue(MoveLeft(1))?;
-                },
-                KeyCode::Char(ch) => {
-                    self.stdout.queue(Print(ch))?;
-                },
-                KeyCode::Backspace => {
-                    self.stdout
-                        .queue(MoveLeft(1))?
-                        .queue(Print(' '))?
-                        .queue(MoveLeft(1))?;
-                },
-                _ => (),
-            },
-            _ => {}
-        };
-        Ok(())
-    }
-
-    /// begin event loop, listen and handle events
-    pub fn listen(&mut self) -> io::Result<()> {
+    /// Begins event loop, listen for and handle events
+    pub fn start(&mut self) -> io::Result<()> {
         loop {
             self.stdout.execute(MoveTo(self.cursor.0, self.cursor.1))?;
 
-            let event = read()?;
-
-            match event {
+            match read()? {
                 Event::Resize(cols, rows) => self.size = (cols, rows),
                 Event::Key(key) => {
-                    match match self.mode {
-                        Mode::Insert => self.imap.get(&key.code),
-                        Mode::Navigate => self.nmap.get(&key.code),
+                    let result = match self.mode {
+                        Mode::Insert => match self.imap.get(&key.code) {
+                            Some(action) => Some(*action),
+                            None => match key.code {
+                                KeyCode::Char(ch) => Some(Action::Input(ch)),
+                                KeyCode::Backspace => Some(Action::Backspace),
+                                _ => None
+                            }
+                        },
+                        Mode::Navigate => match self.nmap.get(&key.code) {
+                            Some(action) => Some(*action),
+                            None => None
+                        },
                         Mode::Visual => None,
                         Mode::Command => None,
-                    } {
-                        Some(action) => self.handle_action(*action).unwrap(),
-                        None => {}
+                    };
+
+                    if let Some(action) = result {
+                        exec(self, action)?;
                     }
                 },
                 _ => {}
             }
 
-            self.stdout
-                // status bar
-                .queue(MoveTo(0, self.size.1))?
-                .queue(SetBackgroundColor(Color::Green))?
-                .queue(SetForegroundColor(Color::Black))?
-                .queue(Print(match self.mode {
-                    Mode::Navigate => " NAV ",
-                    Mode::Insert => " INS ",
-                    Mode::Visual => " VIS ",
-                    Mode::Command => " COM "
-                }))?
-                .queue(ResetColor)?
-                .queue(MoveTo(self.cursor.0, self.cursor.1))?
-
-                // submit
-                .flush()?;
+            self.render()?;
         }
+    }
+
+    /// Renders all TUI elements.
+    pub fn render(&mut self) -> Result<()> {
+        let fg: Color;
+        let bg: Color;
+        let text: &str;
+
+        match self.mode {
+            Mode::Insert => {
+                fg = Color::Black;
+                bg = Color::Green;
+                text = " INS "
+            },
+            Mode::Navigate => {
+                fg = Color::Black;
+                bg = Color::Blue;
+                text = " NAV "
+            },
+            Mode::Visual => {
+                fg = Color::Black;
+                bg = Color::Magenta;
+                text = " VIS "
+            },
+            Mode::Command => {
+                fg = Color::Black;
+                bg = Color::Yellow;
+                text = " CMD "
+            },
+        }
+
+        self.stdout
+            // status bar
+            .queue(MoveTo(0, self.size.1))?
+            .queue(SetBackgroundColor(bg))?
+            .queue(SetForegroundColor(fg))?
+            .queue(Print(text))?
+            .queue(ResetColor)?
+            .queue(MoveTo(self.cursor.0, self.cursor.1))?
+
+            // submit
+            .flush()
     }
 }
