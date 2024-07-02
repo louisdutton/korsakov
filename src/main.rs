@@ -1,6 +1,5 @@
 mod editor;
 mod keymap;
-mod render;
 
 use editor::Editor;
 

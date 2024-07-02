@@ -1,12 +1,11 @@
 use crate::keymap::*;
 use crate::render::render_status_line;
-use std::{fmt, io::{stdin, stdout, Stdout, Write, Result}, process::exit};
-use termion::{
-    clear, color, cursor, event::{Event, Key}, input::TermRead, raw::{IntoRawMode, RawTerminal}, screen::{AlternateScreen, IntoAlternateScreen}, terminal_size
-};
+use std::{io::{self, stdout, Result, Stdout, Write}, process::exit};
+use crossterm::{cursor::{self, SetCursorStyle}, event::{read, Event, KeyCode}, style::{Color, Print, SetBackgroundColor}, terminal, QueueableCommand};
+use terminal::{Clear, ClearType, EnterAlternateScreen};
 
 pub enum Mode {
-    NAVIGATE,
+    Navigate,
     Insert,
     Visual,
     Command,
@@ -23,7 +22,7 @@ pub struct Position {
 
 pub struct Editor {
     mode: Mode,
-    stdout: AlternateScreen<RawTerminal<Stdout>>,
+    stdout: Stdout,
     text: String,
     cursor: Position,
     size: (u16, u16)
@@ -31,22 +30,20 @@ pub struct Editor {
 
 impl Editor {
     pub fn new() -> Result<Editor> {
-        let mut stdout = stdout()
-                .into_raw_mode()?
-                .into_alternate_screen()?;
+        let mut stdout = stdout();
 
-        write!(stdout, "{}{}{}", 
-            clear::All,
-            cursor::Goto(1, 1),
-            cursor::SteadyBlock
-        )?;
+        terminal::enable_raw_mode()?;
+
+        stdout.queue(EnterAlternateScreen);
+        stdout.queue(Clear(ClearType::All));
+        stdout.queue(SetCursorStyle::SteadyBlock);
         stdout.flush()?;
 
         Ok(Editor {
             stdout,
-            mode: Mode::NAVIGATE,
+            mode: Mode::Navigate,
             text: String::new(),
-            size: terminal_size().unwrap(),
+            size: terminal::size()?,
             cursor: Position {
                 row: 0,
                 col: 0,
@@ -55,33 +52,28 @@ impl Editor {
         })
     }
 
-    #[inline]
-    fn write<T: fmt::Display>(&mut self, data: T) {
-        write!(self.stdout, "{}", data).unwrap()
-    }
-
-    fn write_char(&mut self, ch: char) {
-        self.text.push(ch);
-        self.write(ch);
-    }
-
     /// Sets the input mode
     fn set_mode(&mut self, mode: Mode) {
         match mode {
-            Mode::NAVIGATE => self.write(cursor::SteadyBlock),
-            Mode::Insert => self.write(cursor::SteadyBar),
-            Mode::Visual => self.write(cursor::SteadyBlock),
-            Mode::Command => self.write(cursor::SteadyBar), 
+            Mode::Navigate => self.stdout.queue(SetCursorStyle::SteadyBlock),
+            Mode::Insert => self.stdout.queue(SetCursorStyle::SteadyBar),
+            Mode::Visual => self.stdout.queue(SetCursorStyle::SteadyBlock),
+            Mode::Command => self.stdout.queue(SetCursorStyle::SteadyBar), 
         };
         self.mode = mode;
     }
 
     fn handle_insert_event(&mut self, event: Event) {
         match event {
-            Event::Key(key) => match key {
-                Key::Esc => self.set_mode(Mode::NAVIGATE),
-                Key::Char(ch) => self.write_char(ch),
-                Key::Backspace => self.write("\u{8} \u{8}"),
+            Event::Key(key) => match key.code {
+                KeyCode::Esc => self.set_mode(Mode::Navigate),
+                KeyCode::Char(ch) => {
+                    self.stdout.queue(Print(ch));
+                },
+                KeyCode::Backspace => {
+                    self.stdout.queue(cursor::MoveLeft(1));
+                    self.stdout.queue(Print(' '));
+                },
                 _ => (),
             },
             _ => {}
@@ -90,25 +82,30 @@ impl Editor {
 
     fn handle_normal_event(&mut self, event: Event) {
         match event {
-            Event::Key(key) => match key {
-                Key::Char(KEY_EXIT) => exit(0),
-                Key::Char(KEY_INSERT) => self.set_mode(Mode::Insert),
-                Key::Char(KEY_APPEND) => {
+            Event::Key(key) => match key.code {
+                KeyCode::Char(KEY_EXIT) => exit(0),
+                KeyCode::Char(KEY_INSERT) => self.set_mode(Mode::Insert),
+                KeyCode::Char(KEY_APPEND) => {
                     self.set_mode(Mode::Insert);
-                    self.write(cursor::Right(1));
+                    self.stdout.queue(cursor::MoveRight(1));
                 }
-                Key::Char(KEY_VISUAL) => self.set_mode(Mode::Visual),
-                Key::Char(KEY_COMMAND) => self.set_mode(Mode::Command),
+                KeyCode::Char(KEY_VISUAL) => self.set_mode(Mode::Visual),
+                KeyCode::Char(KEY_COMMAND) => self.set_mode(Mode::Command),
 
-                Key::Char(KEY_UP) => self.write(cursor::Up(1)),
-                Key::Char(KEY_DOWN) => self.write(cursor::Down(1)),
-                Key::Char(KEY_LEFT) => self.write(cursor::Left(1)),
-                Key::Char(KEY_RIGHT) => self.write(cursor::Right(1)),
-
-                Key::Char('p') => {
-                    let str = self.text.clone();
-                    self.text.push_str(str.as_str());
-                    self.write(str);
+                KeyCode::Char(KEY_UP) => {
+                    self.stdout.queue(cursor::MoveUp(1));
+                },
+                KeyCode::Char(KEY_DOWN) => {
+                    self.stdout.queue(cursor::MoveDown(1));
+                },
+                KeyCode::Char(KEY_LEFT) => {
+                    self.stdout.queue(cursor::MoveLeft(1));
+                },
+                KeyCode::Char(KEY_RIGHT) => {
+                    self.stdout.queue(cursor::MoveRight(1));
+                },
+                KeyCode::Char('p') => {
+                    self.stdout.queue(Print(self.text.as_str()));
                 },
                 _ => (),
             },
@@ -118,13 +115,21 @@ impl Editor {
 
     fn handle_visual_event(&mut self, event: Event) {
         match event {
-            Event::Key(key) => match key {
-                Key::Esc | Key::Char(KEY_VISUAL) => self.set_mode(Mode::NAVIGATE),
-                Key::Char(KEY_UP) => self.write(cursor::Up(1)),
-                Key::Char(KEY_DOWN) => self.write(cursor::Down(1)),
-                Key::Char(KEY_RIGHT) => self.write(cursor::Right(1)),
-                Key::Char(KEY_LEFT) => {
-                    self.write(format!("{} {}", color::Bg(color::Black), cursor::Left(1)));
+            Event::Key(key) => match key.code {
+                KeyCode::Esc | KeyCode::Char(KEY_VISUAL) => {
+                    self.set_mode(Mode::Navigate);
+                },
+                KeyCode::Char(KEY_UP) => {
+                    self.stdout.queue(cursor::MoveUp(1));
+                },
+                KeyCode::Char(KEY_DOWN) => {
+                    self.stdout.queue(cursor::MoveDown(1));
+                },
+                KeyCode::Char(KEY_RIGHT) => {
+                    self.stdout.queue(cursor::MoveRight(1));
+                },
+                KeyCode::Char(KEY_LEFT) => {
+                    self.stdout.queue(cursor::MoveLeft(1));
                 }
                 _ => (),
             },
@@ -134,8 +139,8 @@ impl Editor {
 
     fn handle_command_event(&mut self, event: Event) {
         match event {
-            Event::Key(key) => match key {
-                Key::Esc => self.set_mode(Mode::NAVIGATE),
+            Event::Key(key) => match key.code {
+                KeyCode::Esc => self.set_mode(Mode::Navigate),
                 _ => (),
             },
             _ => {}
@@ -143,20 +148,33 @@ impl Editor {
     }
 
     /// begin event loop, listen and handle events
-    pub fn listen(&mut self) {
-        let stdin = stdin();
-        for result in stdin.events() {
-            let event = result.unwrap();
+    pub fn listen(&mut self) -> io::Result<()> {
+        loop {
+            let event = read()?;
+
             match self.mode {
                 Mode::Insert => self.handle_insert_event(event),
-                Mode::NAVIGATE => self.handle_normal_event(event),
+                Mode::Navigate => self.handle_normal_event(event),
                 Mode::Visual => self.handle_visual_event(event),
                 Mode::Command => self.handle_command_event(event)
             }
 
-            // render
-            render_status_line(&self.mode, self.size.1, &self.cursor);
-            _ = self.stdout.flush();
+            // status line
+            let mode_text = match self.mode {
+                Mode::Navigate=> "NAV",
+                Mode::Insert => "INS",
+                Mode::Visual => "VIS",
+                Mode::Command => "COM"
+            };
+
+            // status bar
+            self.stdout
+                .queue(cursor::MoveToRow(self.size.1))?
+                .queue(SetBackgroundColor(Color::Green))?
+                .queue(Print(mode_text))?
+                .queue(cursor::MoveTo(self.cursor.col, self.cursor.row))?;
+
+            self.stdout.flush()?;
         }
     }
 }
