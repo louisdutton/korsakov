@@ -1,8 +1,22 @@
-use crate::keymap::*;
-use std::{io::{self, stdout, Result, Stdout, Write}, process::exit};
-use crossterm::{cursor::{MoveDown, MoveLeft, MoveRight, MoveTo, MoveToRow, MoveUp, SetCursorStyle}, event::{read, Event, KeyCode}, style::{Color, Print, SetBackgroundColor}, terminal, QueueableCommand};
+use std::{collections::HashMap, io::{self, stdout, Result, Stdout, Write}, process::exit};
+use crossterm::{cursor::{MoveLeft, MoveTo, MoveToRow, SetCursorStyle}, event::{read, Event, KeyCode}, style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor}, terminal, ExecutableCommand, QueueableCommand};
 use terminal::{Clear, ClearType, EnterAlternateScreen};
 
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum Action {
+    MoveUp,
+    MoveDown,
+    MoveLeft,
+    MoveRight,
+
+    Paste,
+
+    SetMode(Mode),
+    Quit
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
     Navigate,
     Insert,
@@ -10,21 +24,26 @@ pub enum Mode {
     Command,
 }
 
-pub struct Position {
-    /// The number of rows from the top of the buffer
-    pub row: u16,
-    /// The number of columns from the left of the buffer
-    pub col: u16,
-    /// The character offset from the beginning of the buffer
-    pub offset: u16
+#[derive(Debug)]
+pub struct Vec2 {
+    pub x: u16,
+    pub y: u16,
+}
+
+impl Vec2 {
+    fn new(x: u16, y: u16) -> Vec2 {
+        Vec2 { x, y }
+    }
 }
 
 pub struct Editor {
     mode: Mode,
     stdout: Stdout,
     text: String,
-    cursor: Position,
-    size: (u16, u16)
+    cursor: Vec2,
+    size: (u16, u16),
+    nmap: HashMap<KeyCode, Action>,
+    imap: HashMap<KeyCode, Action>
 }
 
 impl Editor {
@@ -44,29 +63,87 @@ impl Editor {
             mode: Mode::Navigate,
             text: String::new(),
             size: terminal::size()?,
-            cursor: Position {
-                row: 0,
-                col: 0,
-                offset: 0
-            }
+            cursor: Vec2::new(0, 0),
+            nmap: HashMap::from([
+                (KeyCode::Char('k'), Action::MoveUp),
+                (KeyCode::Char('j'), Action::MoveDown),
+                (KeyCode::Char('h'), Action::MoveLeft),
+                (KeyCode::Char('l'), Action::MoveRight),
+                (KeyCode::Char('p'), Action::Paste),
+                (KeyCode::Char('q'), Action::Quit),
+                (KeyCode::Char('i'), Action::SetMode(Mode::Insert)),
+            ]),
+            imap: HashMap::from([
+                (KeyCode::Esc, Action::SetMode(Mode::Navigate)),
+            ])
         })
     }
 
     /// Sets the input mode
-    fn set_mode(&mut self, mode: Mode) {
+    fn set_mode(&mut self, mode: Mode) -> io::Result<()> {
         _ = match mode {
-            Mode::Navigate => self.stdout.queue(SetCursorStyle::SteadyBlock),
-            Mode::Insert => self.stdout.queue(SetCursorStyle::SteadyBar),
-            Mode::Visual => self.stdout.queue(SetCursorStyle::SteadyBlock),
-            Mode::Command => self.stdout.queue(SetCursorStyle::SteadyBar), 
+            Mode::Navigate => {
+                self.stdout.queue(SetCursorStyle::SteadyBlock)?;
+                if mode == Mode::Insert {
+                   self.stdout.queue(MoveLeft(1))?;
+                }
+            },
+            Mode::Insert => {
+                self.stdout.queue(SetCursorStyle::SteadyBar)?;
+            },
+            Mode::Visual => {
+                self.stdout.queue(SetCursorStyle::SteadyBlock)?;
+            },
+            Mode::Command => {
+                self.stdout.queue(SetCursorStyle::SteadyBar)?;
+            }, 
         };
         self.mode = mode;
+        Ok(())
+    }
+
+    fn handle_action(&mut self, action: Action) -> io::Result<()> {
+        _ = match action {
+            Action::MoveUp => {
+                if self.cursor.y > 0 {
+                    self.cursor.y -= 1;
+                }
+            },
+            Action::MoveDown => {
+                if self.cursor.y < self.size.1 - 1 {
+                    self.cursor.y += 1;
+                }
+            },
+            Action::MoveLeft => {
+                if self.cursor.x > 0 {
+                    self.cursor.x -= 1;
+                }
+            },
+            Action::MoveRight => {
+                if self.cursor.x < self.size.0 - 1  {
+                    self.cursor.x += 1;
+                }
+            },
+            Action::SetMode(mode) => {
+                self.set_mode(mode)?
+            },
+            Action::Paste => {
+                self.stdout.queue(Print(self.text.as_str()))?;
+            },
+            Action::Quit => {
+                exit(1)
+            }
+        };
+        Ok(())
     }
 
     fn handle_insert_event(&mut self, event: Event) -> Result<()> {
         _ = match event {
             Event::Key(key) => match key.code {
-                KeyCode::Esc => self.set_mode(Mode::Navigate),
+                KeyCode::Esc => {
+                    _ = self.set_mode(Mode::Navigate);
+                    self.stdout.queue(MoveLeft(1))?;
+                },
                 KeyCode::Char(ch) => {
                     self.stdout.queue(Print(ch))?;
                 },
@@ -83,99 +160,42 @@ impl Editor {
         Ok(())
     }
 
-    fn handle_navigation_event(&mut self, event: Event) -> Result<()> {
-        match event {
-            Event::Key(key) => match key.code {
-                KeyCode::Char(KEY_EXIT) => exit(0),
-                KeyCode::Char(KEY_INSERT) => self.set_mode(Mode::Insert),
-                KeyCode::Char(KEY_VISUAL) => self.set_mode(Mode::Visual),
-                KeyCode::Char(KEY_COMMAND) => self.set_mode(Mode::Command),
-
-                KeyCode::Char(KEY_APPEND) => {
-                    self.set_mode(Mode::Insert);
-                    self.stdout.queue(MoveRight(1))?;
-                }
-                KeyCode::Char(KEY_UP) => {
-                    self.stdout.queue(MoveUp(1))?;
-                },
-                KeyCode::Char(KEY_DOWN) => {
-                    self.stdout.queue(MoveDown(1))?;
-                },
-                KeyCode::Char(KEY_LEFT) => {
-                    self.stdout.queue(MoveLeft(1))?;
-                },
-                KeyCode::Char(KEY_RIGHT) => {
-                    self.stdout.queue(MoveRight(1))?;
-                },
-                KeyCode::Char('p') => {
-                    self.stdout.queue(Print(self.text.as_str()))?;
-                },
-                _ => (),
-            },
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn handle_visual_event(&mut self, event: Event) -> io::Result<()> {
-        match event {
-            Event::Key(key) => match key.code {
-                KeyCode::Esc | KeyCode::Char(KEY_VISUAL) => {
-                    self.set_mode(Mode::Navigate);
-                },
-                KeyCode::Char(KEY_UP) => {
-                    self.stdout.queue(MoveUp(1));
-                },
-                KeyCode::Char(KEY_DOWN) => {
-                    self.stdout.queue(MoveDown(1));
-                },
-                KeyCode::Char(KEY_RIGHT) => {
-                    self.stdout.queue(MoveRight(1));
-                },
-                KeyCode::Char(KEY_LEFT) => {
-                    self.stdout.queue(MoveLeft(1));
-                }
-                _ => (),
-            },
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn handle_command_event(&mut self, event: Event) -> io::Result<()> {
-        match event {
-            Event::Key(key) => match key.code {
-                KeyCode::Esc => self.set_mode(Mode::Navigate),
-                _ => (),
-            },
-            _ => {}
-        }
-        Ok(())
-    }
-
     /// begin event loop, listen and handle events
     pub fn listen(&mut self) -> io::Result<()> {
         loop {
+            self.stdout.execute(MoveTo(self.cursor.x, self.cursor.y))?;
+
             let event = read()?;
 
-            _ = match self.mode {
-                Mode::Insert => self.handle_insert_event(event),
-                Mode::Navigate => self.handle_navigation_event(event),
-                Mode::Visual => self.handle_visual_event(event),
-                Mode::Command => self.handle_command_event(event)
-            };
+            match event {
+                Event::Resize(cols, rows) => self.size = (cols, rows),
+                Event::Key(key) => {
+                    match match self.mode {
+                        Mode::Insert => self.imap.get(&key.code),
+                        Mode::Navigate => self.nmap.get(&key.code),
+                        Mode::Visual => None,
+                        Mode::Command => None,
+                    } {
+                        Some(action) => self.handle_action(*action).unwrap(),
+                        None => {}
+                    }
+                },
+                _ => {}
+            }
 
             self.stdout
                 // status bar
-                //.queue(MoveToRow(self.size.1))?
-                //.queue(SetBackgroundColor(Color::Green))?
-                //.queue(Print(match self.mode {
-                //    Mode::Navigate=> "NAV",
-                //    Mode::Insert => "INS",
-                //    Mode::Visual => "VIS",
-                //    Mode::Command => "COM"
-                //}))?
-                //.queue(MoveTo(self.cursor.col, self.cursor.row))?
+                .queue(MoveTo(0, self.size.1))?
+                .queue(SetBackgroundColor(Color::Green))?
+                .queue(SetForegroundColor(Color::Black))?
+                .queue(Print(match self.mode {
+                    Mode::Navigate => " NAV ",
+                    Mode::Insert => " INS ",
+                    Mode::Visual => " VIS ",
+                    Mode::Command => " COM "
+                }))?
+                .queue(ResetColor)?
+                .queue(MoveTo(self.cursor.x, self.cursor.y))?
 
                 // submit
                 .flush()?;
