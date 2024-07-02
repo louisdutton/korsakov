@@ -1,78 +1,58 @@
 use crate::keymap::*;
-use std::{fmt::{self}, io::{stdin, stdout, Stdout, Write}};
+use crate::render::render_status_line;
+use std::{fmt, io::{stdin, stdout, Stdout, Write, Result}, process::exit};
 use termion::{
     clear, color, cursor, event::{Event, Key}, input::TermRead, raw::{IntoRawMode, RawTerminal}, screen::{AlternateScreen, IntoAlternateScreen}, terminal_size
 };
 
-enum Mode {
-    Normal,
+pub enum Mode {
+    NAVIGATE,
     Insert,
     Visual,
     Command,
 }
 
-struct Range {
-    from: usize,
-    to: usize,
-    content: String
-}
-
-struct Position {
+pub struct Position {
     /// The number of rows from the top of the buffer
-    row: u32,
+    pub row: u16,
     /// The number of columns from the left of the buffer
-    col: u32,
+    pub col: u16,
     /// The character offset from the beginning of the buffer
-    offset: u32
-}
-
-struct Line {
-    content: String
+    pub offset: u16
 }
 
 pub struct Editor {
     mode: Mode,
     stdout: AlternateScreen<RawTerminal<Stdout>>,
     text: String,
-    line: String,
-    selection: String,
     cursor: Position,
     size: (u16, u16)
 }
 
 impl Editor {
-    pub fn new() -> Editor {
-        Editor {
-            mode: Mode::Normal,
-            text: String::default(),
-            selection: String::default(),
-            line: String::default(),
+    pub fn new() -> Result<Editor> {
+        let mut stdout = stdout()
+                .into_raw_mode()?
+                .into_alternate_screen()?;
+
+        write!(stdout, "{}{}{}", 
+            clear::All,
+            cursor::Goto(1, 1),
+            cursor::SteadyBlock
+        )?;
+        stdout.flush()?;
+
+        Ok(Editor {
+            stdout,
+            mode: Mode::NAVIGATE,
+            text: String::new(),
             size: terminal_size().unwrap(),
             cursor: Position {
                 row: 0,
                 col: 0,
                 offset: 0
-            },
-            stdout: stdout()
-                .into_raw_mode()
-                .unwrap()
-                .into_alternate_screen()
-                .unwrap()
-        }
-    }
-
-    pub fn reset(&mut self) {
-        self.write(format!(
-            "{}{}{}",
-            clear::All,
-            cursor::Goto(1, 1),
-            cursor::SteadyBlock)
-        );
-        self.stdout.flush().unwrap();
-    }
-
-    pub fn debug<T: fmt::Display>(&mut self, data: T) {
-        write!(self.stdout, "{}", data).unwrap()
+            }
+        })
     }
 
     #[inline]
@@ -85,15 +65,10 @@ impl Editor {
         self.write(ch);
     }
 
-    fn write_str(&mut self, str: &str) {
-        self.text.push_str(str);
-        self.write(str);
-    }
-
     /// Sets the input mode
     fn set_mode(&mut self, mode: Mode) {
         match mode {
-            Mode::Normal => self.write(cursor::SteadyBlock),
+            Mode::NAVIGATE => self.write(cursor::SteadyBlock),
             Mode::Insert => self.write(cursor::SteadyBar),
             Mode::Visual => self.write(cursor::SteadyBlock),
             Mode::Command => self.write(cursor::SteadyBar), 
@@ -101,72 +76,87 @@ impl Editor {
         self.mode = mode;
     }
 
+    fn handle_insert_event(&mut self, event: Event) {
+        match event {
+            Event::Key(key) => match key {
+                Key::Esc => self.set_mode(Mode::NAVIGATE),
+                Key::Char(ch) => self.write_char(ch),
+                Key::Backspace => self.write("\u{8} \u{8}"),
+                _ => (),
+            },
+            _ => {}
+        }
+    }
+
+    fn handle_normal_event(&mut self, event: Event) {
+        match event {
+            Event::Key(key) => match key {
+                Key::Char(KEY_EXIT) => exit(0),
+                Key::Char(KEY_INSERT) => self.set_mode(Mode::Insert),
+                Key::Char(KEY_APPEND) => {
+                    self.set_mode(Mode::Insert);
+                    self.write(cursor::Right(1));
+                }
+                Key::Char(KEY_VISUAL) => self.set_mode(Mode::Visual),
+                Key::Char(KEY_COMMAND) => self.set_mode(Mode::Command),
+
+                Key::Char(KEY_UP) => self.write(cursor::Up(1)),
+                Key::Char(KEY_DOWN) => self.write(cursor::Down(1)),
+                Key::Char(KEY_LEFT) => self.write(cursor::Left(1)),
+                Key::Char(KEY_RIGHT) => self.write(cursor::Right(1)),
+
+                Key::Char('p') => {
+                    let str = self.text.clone();
+                    self.text.push_str(str.as_str());
+                    self.write(str);
+                },
+                _ => (),
+            },
+            _ => {}
+        }
+    }
+
+    fn handle_visual_event(&mut self, event: Event) {
+        match event {
+            Event::Key(key) => match key {
+                Key::Esc | Key::Char(KEY_VISUAL) => self.set_mode(Mode::NAVIGATE),
+                Key::Char(KEY_UP) => self.write(cursor::Up(1)),
+                Key::Char(KEY_DOWN) => self.write(cursor::Down(1)),
+                Key::Char(KEY_RIGHT) => self.write(cursor::Right(1)),
+                Key::Char(KEY_LEFT) => {
+                    self.write(format!("{} {}", color::Bg(color::Black), cursor::Left(1)));
+                }
+                _ => (),
+            },
+            _ => {}
+        }
+    }
+
+    fn handle_command_event(&mut self, event: Event) {
+        match event {
+            Event::Key(key) => match key {
+                Key::Esc => self.set_mode(Mode::NAVIGATE),
+                _ => (),
+            },
+            _ => {}
+        }
+    }
+
+    /// begin event loop, listen and handle events
     pub fn listen(&mut self) {
         let stdin = stdin();
         for result in stdin.events() {
             let event = result.unwrap();
             match self.mode {
-                Mode::Insert => match event {
-                    Event::Key(key) => match key {
-                        Key::Esc => self.set_mode(Mode::Normal),
-                        Key::Char(ch) => self.write_char(ch),
-                        Key::Backspace => self.write("\u{8} \u{8}"),
-                        _ => (),
-                    },
-                    _ => {}
-                },
-
-                Mode::Normal => match event {
-                    Event::Key(key) => match key {
-                        Key::Char(KEY_EXIT) => break,
-                        Key::Char(KEY_INSERT) => self.set_mode(Mode::Insert),
-                        Key::Char(KEY_APPEND) => {
-                            self.set_mode(Mode::Insert);
-                            self.write(cursor::Right(1));
-                        }
-                        Key::Char(KEY_VISUAL) => self.set_mode(Mode::Visual),
-                        Key::Char(KEY_COMMAND) => self.set_mode(Mode::Command),
-
-                        Key::Char(KEY_UP) => self.write(cursor::Up(1)),
-                        Key::Char(KEY_DOWN) => self.write(cursor::Down(1)),
-                        Key::Char(KEY_LEFT) => self.write(cursor::Left(1)),
-                        Key::Char(KEY_RIGHT) => self.write(cursor::Right(1)),
-
-                        Key::Char('p') => {
-                            let str = self.text.clone();
-                            self.text.push_str(str.as_str());
-                            self.write(str);
-                        },
-                        _ => (),
-                    },
-                    _ => {}
-                },
-
-                Mode::Visual => match event {
-                    Event::Key(key) => match key {
-                        Key::Esc | Key::Char(KEY_VISUAL) => self.set_mode(Mode::Normal),
-                        Key::Char(KEY_UP) => self.write(cursor::Up(1)),
-                        Key::Char(KEY_DOWN) => self.write(cursor::Down(1)),
-                        Key::Char(KEY_RIGHT) => self.write(cursor::Right(1)),
-                        Key::Char(KEY_LEFT) => {
-                            self.write(format!("{} {}", color::Bg(color::Black), cursor::Left(1)));
-                        }
-                        _ => (),
-                    },
-                    _ => {}
-                },
-
-                Mode::Command => match event {
-                    Event::Key(key) => match key {
-                        Key::Esc => self.set_mode(Mode::Normal),
-                        //Key::Char(c) => self.write(c),
-                        //Key::Backspace => self.write("\u{8} \u{8}"),
-                        _ => (),
-                    },
-                    _ => {}
-                },
+                Mode::Insert => self.handle_insert_event(event),
+                Mode::NAVIGATE => self.handle_normal_event(event),
+                Mode::Visual => self.handle_visual_event(event),
+                Mode::Command => self.handle_command_event(event)
             }
-            self.stdout.flush().unwrap();
+
+            // render
+            render_status_line(&self.mode, self.size.1, &self.cursor);
+            _ = self.stdout.flush();
         }
     }
 }
