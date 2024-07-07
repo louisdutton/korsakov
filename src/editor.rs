@@ -1,7 +1,16 @@
-use std::{collections::HashMap, io::{self, stdout, Result, Stdout, Write}};
-use crossterm::{cursor::{MoveTo, SetCursorStyle}, event::{read, Event, KeyCode}, style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor}, terminal, ExecutableCommand, QueueableCommand};
-use terminal::{Clear, ClearType, EnterAlternateScreen};
 use crate::actions::{exec, Action};
+use crossterm::{
+    cursor::{MoveTo, SetCursorStyle},
+    event::{read, Event, KeyCode},
+    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+    terminal, ExecutableCommand, QueueableCommand,
+};
+use std::{
+    collections::HashMap,
+    io::{self, stdout, Result, Stdout, Write},
+};
+use terminal::{Clear, ClearType, EnterAlternateScreen};
+
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -18,7 +27,7 @@ pub struct Editor {
     pub cursor: (u16, u16),
     pub size: (u16, u16),
     nmap: HashMap<KeyCode, Action>,
-    imap: HashMap<KeyCode, Action>
+    imap: HashMap<KeyCode, Action>,
 }
 
 impl Editor {
@@ -39,18 +48,20 @@ impl Editor {
             size: terminal::size()?,
             cursor: (0, 0),
             nmap: HashMap::from([
-                (KeyCode::Char('k'), Action::MoveUp(1)),
-                (KeyCode::Char('j'), Action::MoveDown(1)),
-                (KeyCode::Char('h'), Action::MoveLeft(1)),
-                (KeyCode::Char('l'), Action::MoveRight(1)),
+                (KeyCode::Char('k'), Action::CursorUp(1)),
+                (KeyCode::Char('j'), Action::CursorDown(1)),
+                (KeyCode::Char('h'), Action::CursorLeft(1)),
+                (KeyCode::Char('l'), Action::CursorRight(1)),
+                (KeyCode::Char('H'), Action::CursorLineStart),
+                (KeyCode::Char('L'), Action::CursorLineEnd),
+                (KeyCode::Char('K'), Action::CursorBufferStart),
+                (KeyCode::Char('J'), Action::CursorBufferEnd),
                 (KeyCode::Char('p'), Action::Paste),
                 (KeyCode::Char('q'), Action::Quit),
                 (KeyCode::Char('x'), Action::Delete),
                 (KeyCode::Char('i'), Action::SetMode(Mode::Insert)),
             ]),
-            imap: HashMap::from([
-                (KeyCode::Esc, Action::SetMode(Mode::Navigate)),
-            ])
+            imap: HashMap::from([(KeyCode::Esc, Action::SetMode(Mode::Navigate))]),
         })
     }
 
@@ -60,23 +71,22 @@ impl Editor {
             Mode::Navigate => {
                 self.stdout.queue(SetCursorStyle::SteadyBlock)?;
                 if self.mode == Mode::Insert {
-                    exec(self, Action::MoveLeft(1))?;
+                    exec(self, Action::CursorLeft(1))?;
                 }
-            },
+            }
             Mode::Insert => {
                 self.stdout.queue(SetCursorStyle::SteadyBar)?;
-            },
+            }
             Mode::Visual => {
                 self.stdout.queue(SetCursorStyle::SteadyBlock)?;
-            },
+            }
             Mode::Command => {
                 self.stdout.queue(SetCursorStyle::SteadyBar)?;
-            }, 
+            }
         };
         self.mode = mode;
         Ok(())
     }
-
 
     /// Begins event loop, listen for and handle events
     pub fn start(&mut self) -> io::Result<()> {
@@ -92,12 +102,12 @@ impl Editor {
                             None => match key.code {
                                 KeyCode::Char(ch) => Some(Action::Input(ch)),
                                 KeyCode::Backspace => Some(Action::Backspace),
-                                _ => None
-                            }
+                                _ => None,
+                            },
                         },
                         Mode::Navigate => match self.nmap.get(&key.code) {
                             Some(action) => Some(*action),
-                            None => None
+                            None => None,
                         },
                         Mode::Visual => None,
                         Mode::Command => None,
@@ -106,7 +116,7 @@ impl Editor {
                     if let Some(action) = result {
                         exec(self, action)?;
                     }
-                },
+                }
                 _ => {}
             }
 
