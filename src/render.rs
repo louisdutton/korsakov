@@ -5,31 +5,28 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use std::io::{self, Write};
+use std::io::{self, Stdout, Write};
 
 const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
 // TODO create renderable trait
 pub fn render(e: &mut Editor) -> io::Result<()> {
-    render_buffer(e)?;
+    if e.dirty {
+        render_buffer(e)?;
+        e.dirty = false;
+    };
     render_status_bar(e)?;
     e.stdout.flush()
 }
 
-fn render_buffer(e: &mut Editor) -> io::Result<()> {
-    if e.dirty {
-        e.stdout
-            // buffer
-            .queue(Clear(ClearType::All))?
-            .queue(MoveTo(0, 0))?
-            .queue(Print(&e.text))?;
-        e.dirty = false;
-    }
-
-    Ok(())
+fn render_buffer(e: &mut Editor) -> io::Result<&mut Stdout> {
+    Ok(e.stdout
+        .queue(Clear(ClearType::All))?
+        .queue(MoveTo(0, 0))?
+        .queue(Print(&e.text))?)
 }
 
-fn render_status_bar(e: &mut Editor) -> io::Result<()> {
+fn render_status_bar(e: &mut Editor) -> io::Result<&mut Stdout> {
     let fg: Color;
     let bg: Color;
     let text: &str;
@@ -57,13 +54,11 @@ fn render_status_bar(e: &mut Editor) -> io::Result<()> {
         }
     }
 
-    e.stdout
+    Ok(e.stdout
         .queue(MoveTo(0, e.size.1))?
         .queue(SetBackgroundColor(bg))?
         .queue(SetForegroundColor(fg))?
         .queue(Print(text))?
         .queue(ResetColor)?
-        .queue(MoveTo(e.cursor.0, e.cursor.1))?;
-
-    Ok(())
+        .queue(MoveTo(e.cursor.0, e.cursor.1))?)
 }
