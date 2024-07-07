@@ -63,6 +63,7 @@ impl Editor {
                 (KeyCode::Char('q'), Action::Quit),
                 (KeyCode::Char('x'), Action::Delete),
                 (KeyCode::Char('i'), Action::SetMode(Mode::Insert)),
+                (KeyCode::Char('a'), Action::SetMode(Mode::Insert)),
             ]),
             imap: HashMap::from([(KeyCode::Esc, Action::SetMode(Mode::Navigate))]),
         })
