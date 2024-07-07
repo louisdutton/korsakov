@@ -96,6 +96,7 @@ impl Editor {
         loop {
             self.stdout.execute(MoveTo(self.cursor.0, self.cursor.1))?;
 
+            // TODO use poll to allow for async operations
             match read()? {
                 Event::Resize(cols, rows) => self.size = (cols, rows),
                 Event::Key(key) => {
