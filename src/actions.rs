@@ -63,19 +63,27 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
         Action::Paste => {
             e.stdout.queue(Print(e.text.as_str()))?;
             exec(e, Action::CursorRight(e.text.len() as u16))?;
+            e.dirty = true;
         }
         Action::Quit => exit(1),
         Action::Input(ch) => {
             e.text.insert(e.cursor.0.into(), ch);
             exec(e, Action::CursorRight(1))?;
+            e.dirty = true;
         }
         Action::Backspace => {
-            e.stdout.queue(MoveLeft(1))?.queue(Print(' '))?;
-            exec(e, Action::CursorLeft(1))?;
-            exec(e, Action::Delete)?;
+            if e.text.len() > 0 {
+                e.stdout.queue(MoveLeft(1))?.queue(Print(' '))?;
+                exec(e, Action::CursorLeft(1))?;
+                exec(e, Action::Delete)?;
+                e.dirty = true;
+            }
         }
         Action::Delete => {
-            e.text.remove(e.cursor.0.into());
+            if e.text.len() > 0 {
+                e.text.remove(e.cursor.0.into());
+                e.dirty = true;
+            }
         }
     };
     Ok(())

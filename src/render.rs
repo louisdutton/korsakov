@@ -38,11 +38,17 @@ pub fn render(e: &mut Editor) -> io::Result<()> {
         }
     }
 
+    if e.dirty {
+        e.stdout
+            // buffer
+            .queue(Clear(ClearType::All))?
+            .queue(MoveTo(0, 0))?
+            .queue(Print(&e.text))?;
+
+        e.dirty = false;
+    }
+
     e.stdout
-        // buffer
-        .queue(Clear(ClearType::All))?
-        .queue(MoveTo(0, 0))?
-        .queue(Print(&e.text))?
         // status bar
         .queue(MoveTo(0, e.size.1))?
         .queue(SetBackgroundColor(bg))?

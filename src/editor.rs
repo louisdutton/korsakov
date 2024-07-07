@@ -25,6 +25,7 @@ pub struct Editor {
     pub mode: Mode,
     pub stdout: Stdout,
     pub text: String,
+    pub dirty: bool,
     pub cursor: (u16, u16),
     pub size: (u16, u16),
     nmap: HashMap<KeyCode, Action>,
@@ -46,6 +47,7 @@ impl Editor {
             stdout,
             mode: Mode::Navigate,
             text: String::new(),
+            dirty: false,
             size: terminal::size()?,
             cursor: (0, 0),
             nmap: HashMap::from([
