@@ -155,6 +155,10 @@ impl Editor {
         }
 
         self.stdout
+            // buffer
+            //.queue(Clear(ClearType::All))?
+            .queue(MoveTo(0, 0))?
+            .queue(Print(&self.text))?
             // status bar
             .queue(MoveTo(0, self.size.1))?
             .queue(SetBackgroundColor(bg))?

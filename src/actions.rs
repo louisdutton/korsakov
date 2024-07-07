@@ -67,15 +67,15 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
         Action::Quit => exit(1),
         Action::Input(ch) => {
             e.text.push(ch);
-            e.stdout.queue(Print(ch))?;
             exec(e, Action::CursorRight(1))?;
         }
         Action::Backspace => {
             e.stdout.queue(MoveLeft(1))?.queue(Print(' '))?;
             exec(e, Action::CursorLeft(1))?;
+            exec(e, Action::Delete)?;
         }
         Action::Delete => {
-            e.stdout.queue(Print(' '))?;
+            e.text.remove(e.cursor.0.into());
         }
     };
     Ok(())
