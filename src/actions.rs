@@ -66,7 +66,7 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
         }
         Action::Quit => exit(1),
         Action::Input(ch) => {
-            e.text.push(ch);
+            e.text.insert(e.cursor.0.into(), ch);
             exec(e, Action::CursorRight(1))?;
         }
         Action::Backspace => {
