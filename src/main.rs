@@ -1,6 +1,7 @@
+mod actions;
 mod editor;
 mod keymap;
-mod actions;
+mod render;
 
 use editor::Editor;
 

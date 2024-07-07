@@ -1,8 +1,10 @@
-use crate::actions::{exec, Action};
+use crate::{
+    actions::{exec, Action},
+    render::render,
+};
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     event::{read, Event, KeyCode},
-    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::{
@@ -10,8 +12,6 @@ use std::{
     io::{self, stdout, Result, Stdout, Write},
 };
 use terminal::{Clear, ClearType, EnterAlternateScreen};
-
-const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -22,7 +22,7 @@ pub enum Mode {
 }
 
 pub struct Editor {
-    mode: Mode,
+    pub mode: Mode,
     pub stdout: Stdout,
     pub text: String,
     pub cursor: (u16, u16),
@@ -121,52 +121,7 @@ impl Editor {
                 _ => {}
             }
 
-            self.render()?;
+            render(self)?;
         }
-    }
-
-    /// Renders all TUI elements.
-    pub fn render(&mut self) -> Result<()> {
-        let fg: Color;
-        let bg: Color;
-        let text: &str;
-
-        match self.mode {
-            Mode::Insert => {
-                fg = BLACK;
-                bg = Color::Green;
-                text = " INS "
-            }
-            Mode::Navigate => {
-                fg = BLACK;
-                bg = Color::Blue;
-                text = " NAV "
-            }
-            Mode::Visual => {
-                fg = BLACK;
-                bg = Color::Magenta;
-                text = " VIS "
-            }
-            Mode::Command => {
-                fg = BLACK;
-                bg = Color::Yellow;
-                text = " CMD "
-            }
-        }
-
-        self.stdout
-            // buffer
-            //.queue(Clear(ClearType::All))?
-            .queue(MoveTo(0, 0))?
-            .queue(Print(&self.text))?
-            // status bar
-            .queue(MoveTo(0, self.size.1))?
-            .queue(SetBackgroundColor(bg))?
-            .queue(SetForegroundColor(fg))?
-            .queue(Print(text))?
-            .queue(ResetColor)?
-            .queue(MoveTo(self.cursor.0, self.cursor.1))?
-            // submit
-            .flush()
     }
 }
