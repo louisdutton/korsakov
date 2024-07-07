@@ -11,6 +11,7 @@ use std::{
 };
 use terminal::{Clear, ClearType, EnterAlternateScreen};
 
+const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -132,25 +133,25 @@ impl Editor {
 
         match self.mode {
             Mode::Insert => {
-                fg = Color::Black;
+                fg = BLACK;
                 bg = Color::Green;
                 text = " INS "
-            },
+            }
             Mode::Navigate => {
-                fg = Color::Black;
+                fg = BLACK;
                 bg = Color::Blue;
                 text = " NAV "
-            },
+            }
             Mode::Visual => {
-                fg = Color::Black;
+                fg = BLACK;
                 bg = Color::Magenta;
                 text = " VIS "
-            },
+            }
             Mode::Command => {
-                fg = Color::Black;
+                fg = BLACK;
                 bg = Color::Yellow;
                 text = " CMD "
-            },
+            }
         }
 
         self.stdout
@@ -161,7 +162,6 @@ impl Editor {
             .queue(Print(text))?
             .queue(ResetColor)?
             .queue(MoveTo(self.cursor.0, self.cursor.1))?
-
             // submit
             .flush()
     }
