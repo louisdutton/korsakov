@@ -9,8 +9,27 @@ use std::io::{self, Write};
 
 const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
-/// Renders all TUI elements.
+// TODO create renderable trait
 pub fn render(e: &mut Editor) -> io::Result<()> {
+    render_buffer(e)?;
+    render_status_bar(e)?;
+    e.stdout.flush()
+}
+
+fn render_buffer(e: &mut Editor) -> io::Result<()> {
+    if e.dirty {
+        e.stdout
+            // buffer
+            .queue(Clear(ClearType::All))?
+            .queue(MoveTo(0, 0))?
+            .queue(Print(&e.text))?;
+        e.dirty = false;
+    }
+
+    Ok(())
+}
+
+fn render_status_bar(e: &mut Editor) -> io::Result<()> {
     let fg: Color;
     let bg: Color;
     let text: &str;
@@ -38,24 +57,13 @@ pub fn render(e: &mut Editor) -> io::Result<()> {
         }
     }
 
-    if e.dirty {
-        e.stdout
-            // buffer
-            .queue(Clear(ClearType::All))?
-            .queue(MoveTo(0, 0))?
-            .queue(Print(&e.text))?;
-
-        e.dirty = false;
-    }
-
     e.stdout
-        // status bar
         .queue(MoveTo(0, e.size.1))?
         .queue(SetBackgroundColor(bg))?
         .queue(SetForegroundColor(fg))?
         .queue(Print(text))?
         .queue(ResetColor)?
-        .queue(MoveTo(e.cursor.0, e.cursor.1))?
-        // submit
-        .flush()
+        .queue(MoveTo(e.cursor.0, e.cursor.1))?;
+
+    Ok(())
 }
