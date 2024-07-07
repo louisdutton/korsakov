@@ -2,6 +2,7 @@ use crate::editor::{Editor, Mode};
 use crossterm::{
     cursor::MoveTo,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+    terminal::{Clear, ClearType},
     QueueableCommand,
 };
 use std::io::{self, Write};
@@ -39,7 +40,7 @@ pub fn render(e: &mut Editor) -> io::Result<()> {
 
     e.stdout
         // buffer
-        // TODO clear viewport
+        .queue(Clear(ClearType::All))?
         .queue(MoveTo(0, 0))?
         .queue(Print(&e.text))?
         // status bar
