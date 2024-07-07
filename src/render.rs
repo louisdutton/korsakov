@@ -5,7 +5,10 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use std::io::{self, Stdout, Write};
+use std::{
+    fmt::format,
+    io::{self, Stdout, Write},
+};
 
 const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
@@ -54,11 +57,21 @@ fn render_status_bar(e: &mut Editor) -> io::Result<&mut Stdout> {
         }
     }
 
+    let coords = format!(" {}:{} ", e.cursor.1, e.cursor.0);
+
     Ok(e.stdout
+        // mode
         .queue(MoveTo(0, e.size.1))?
         .queue(SetBackgroundColor(bg))?
         .queue(SetForegroundColor(fg))?
         .queue(Print(text))?
         .queue(ResetColor)?
-        .queue(MoveTo(e.cursor.0, e.cursor.1))?)
+        // filename
+        .queue(Print(" example.txt "))?
+        // coordinates
+        .queue(MoveTo(e.size.0 - coords.len() as u16, e.size.1))?
+        .queue(SetBackgroundColor(bg))?
+        .queue(SetForegroundColor(fg))?
+        .queue(Print(coords))?
+        .queue(ResetColor)?)
 }
