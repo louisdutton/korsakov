@@ -64,8 +64,16 @@ impl Editor {
                 (KeyCode::Char('x'), Action::Delete),
                 (KeyCode::Char('i'), Action::SetMode(Mode::Insert)),
                 (
+                    KeyCode::Char('I'),
+                    Action::Chain(vec![Action::SetMode(Mode::Insert), Action::CursorLineStart]),
+                ),
+                (
                     KeyCode::Char('a'),
                     Action::Chain(vec![Action::SetMode(Mode::Insert), Action::CursorRight(1)]),
+                ),
+                (
+                    KeyCode::Char('A'),
+                    Action::Chain(vec![Action::SetMode(Mode::Insert), Action::CursorLineEnd]),
                 ),
             ]),
             imap: HashMap::from([(
