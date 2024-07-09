@@ -101,22 +101,19 @@ impl Editor {
             match read()? {
                 Event::Resize(cols, rows) => self.size = (cols, rows),
                 Event::Key(key) => {
-                    let result = match self.mode {
-                        Mode::Insert => match self.imap.get(&key.code) {
-                            Some(action) => Some(*action),
-                            None => match key.code {
+                    let result =
+                        match self.mode {
+                            Mode::Insert => self.imap.get(&key.code).cloned().or_else(|| match key
+                                .code
+                            {
                                 KeyCode::Char(ch) => Some(Action::Input(ch)),
                                 KeyCode::Backspace => Some(Action::Backspace),
                                 _ => None,
-                            },
-                        },
-                        Mode::Navigate => match self.nmap.get(&key.code) {
-                            Some(action) => Some(*action),
-                            None => None,
-                        },
-                        Mode::Visual => None,
-                        Mode::Command => None,
-                    };
+                            }),
+                            Mode::Navigate => self.nmap.get(&key.code).cloned(),
+                            Mode::Visual => None,
+                            Mode::Command => None,
+                        };
 
                     if let Some(action) = result {
                         exec(self, action)?;

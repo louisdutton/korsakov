@@ -2,7 +2,7 @@ use crate::editor::{Editor, Mode};
 use crossterm::{cursor::MoveLeft, style::Print, QueueableCommand};
 use std::{io, process::exit};
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Action {
     // navigate
     CursorUp(u16),
