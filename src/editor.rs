@@ -63,30 +63,25 @@ impl Editor {
                 (KeyCode::Char('q'), Action::Quit),
                 (KeyCode::Char('x'), Action::Delete),
                 (KeyCode::Char('i'), Action::SetMode(Mode::Insert)),
-                (KeyCode::Char('a'), Action::SetMode(Mode::Insert)),
+                (
+                    KeyCode::Char('a'),
+                    Action::Chain(vec![Action::SetMode(Mode::Insert), Action::CursorRight(1)]),
+                ),
             ]),
-            imap: HashMap::from([(KeyCode::Esc, Action::SetMode(Mode::Navigate))]),
+            imap: HashMap::from([(
+                KeyCode::Esc,
+                Action::Chain(vec![Action::SetMode(Mode::Navigate), Action::CursorLeft(1)]),
+            )]),
         })
     }
 
     /// Sets the input mode
     pub fn set_mode(&mut self, mode: Mode) -> io::Result<()> {
-        _ = match mode {
-            Mode::Navigate => {
-                self.stdout.queue(SetCursorStyle::SteadyBlock)?;
-                if self.mode == Mode::Insert {
-                    exec(self, Action::CursorLeft(1))?;
-                }
-            }
-            Mode::Insert => {
-                self.stdout.queue(SetCursorStyle::SteadyBar)?;
-            }
-            Mode::Visual => {
-                self.stdout.queue(SetCursorStyle::SteadyBlock)?;
-            }
-            Mode::Command => {
-                self.stdout.queue(SetCursorStyle::SteadyBar)?;
-            }
+        match mode {
+            Mode::Navigate => self.stdout.queue(SetCursorStyle::SteadyBlock)?,
+            Mode::Insert => self.stdout.queue(SetCursorStyle::SteadyBar)?,
+            Mode::Visual => self.stdout.queue(SetCursorStyle::SteadyBlock)?,
+            Mode::Command => self.stdout.queue(SetCursorStyle::SteadyBar)?,
         };
         self.mode = mode;
         Ok(())

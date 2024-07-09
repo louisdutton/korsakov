@@ -22,6 +22,7 @@ pub enum Action {
 
     // generic
     SetMode(Mode),
+    Chain(Vec<Action>),
     Quit,
 }
 
@@ -83,6 +84,11 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
             if e.text.len() > 0 {
                 e.text.remove(e.cursor.0.into());
                 e.dirty = true;
+            }
+        }
+        Action::Chain(actions) => {
+            for action in actions {
+                exec(e, action)?;
             }
         }
     };
