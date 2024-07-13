@@ -73,7 +73,7 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
             e.dirty = true;
         }
         Action::Backspace => {
-            if e.text.len() > 0 {
+            if e.text.len() > 0 && e.cursor.0 > 0 {
                 e.stdout.queue(MoveLeft(1))?.queue(Print(' '))?;
                 exec(e, Action::CursorLeft(1))?;
                 exec(e, Action::Delete)?;
