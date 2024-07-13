@@ -95,8 +95,16 @@ impl Editor {
         Ok(())
     }
 
+    /// Sets the text content and dirties the buffer
+    pub fn set_text(&mut self, text: String) -> &mut Self {
+        self.text = text;
+        self.dirty = true;
+        render(self).unwrap();
+        return self;
+    }
+
     /// Begins event loop, listen for and handle events
-    pub fn start(&mut self) -> io::Result<()> {
+    pub fn listen(&mut self) -> io::Result<()> {
         loop {
             self.stdout.execute(MoveTo(self.cursor.0, self.cursor.1))?;
 
