@@ -3,7 +3,11 @@ mod editor;
 mod render;
 
 use clap::{command, Parser};
-use std::{fs, io, path::Path};
+use std::{
+    fs,
+    io::{self, Read},
+    path::Path,
+};
 
 use editor::Editor;
 
@@ -13,16 +17,21 @@ use editor::Editor;
 #[command(version, about, long_about = None)]
 /// Korsakov: A speedy little text editor for the terminal.
 struct Args {
-    /// The target file path
-    file: String,
+    /// The target filename
+    filename: Option<String>,
 }
 
 fn main() -> io::Result<()> {
     let args = Args::parse();
     let mut editor = Editor::new()?;
 
-    if !args.file.is_empty() {
-        if let Ok(text) = fs::read_to_string(Path::new(&args.file)) {
+    if let Some(file) = args.filename {
+        if let Ok(text) = fs::read_to_string(Path::new(&file)) {
+            editor.set_text(text);
+        }
+    } else {
+        let mut text = String::new();
+        if let Ok(_) = io::stdin().read_to_string(&mut text) {
             editor.set_text(text);
         }
     }
