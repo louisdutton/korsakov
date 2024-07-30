@@ -15,6 +15,10 @@ pub enum Action {
     Paste,
     Delete,
 
+    // visual
+    DeleteSelection,
+    YankSelection,
+
     // insert
     Input(char),
     Backspace,
@@ -46,10 +50,18 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
         }
         Action::CursorLeft(n) => {
             e.cursor.0 = e.cursor.0.saturating_sub(n);
+            let new_pos = e.cursor.0;
+            if let Some(sel) = &mut e.get_active_buffer_mut().selection {
+                sel.end = new_pos;
+            }
         }
         Action::CursorRight(n) => {
             if e.cursor.0 < line_end.saturating_sub(n) {
                 e.cursor.0 += n;
+                let new_pos = e.cursor.0;
+                if let Some(sel) = &mut e.get_active_buffer_mut().selection {
+                    sel.end = new_pos;
+                }
             }
         }
         Action::CursorLineStart => {
@@ -96,6 +108,14 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
                 exec(e, action)?;
             }
         }
+        Action::DeleteSelection => {
+            if let Some(selection) = &buff.selection {
+                let start = selection.start.min(selection.end) as usize;
+                let end = selection.start.max(selection.end) as usize;
+                buff.content.replace_range(start..end, &"")
+            }
+        }
+        Action::YankSelection => todo!(),
     };
     Ok(())
 }
