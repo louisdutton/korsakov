@@ -2,35 +2,33 @@ use crate::editor::{Editor, Mode};
 use crossterm::{
     cursor::MoveTo,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+    terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use std::io::{self, Stdout, Write};
+use std::io::{self, Write};
 
 const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
-pub trait Renderable {
-    fn render(&mut self, stdout: &mut Stdout) -> io::Result<()>;
-}
-
-trait Render {
-    fn render(&mut self, component: &mut dyn Renderable) -> io::Result<&mut Self>;
-}
-
-impl Render for Stdout {
-    fn render(&mut self, component: &mut dyn Renderable) -> io::Result<&mut Self> {
-        component.render(self)?;
-        Ok(self)
-    }
-}
-
 pub fn render(e: &mut Editor) -> io::Result<()> {
-    let buffer = e.buffers.get_mut(e.active_buffer).unwrap();
-    e.stdout.render(buffer);
+    render_buffer(e)?;
     render_status_bar(e)?;
     e.stdout.flush()
 }
 
-fn render_status_bar(e: &mut Editor) -> io::Result<&mut Stdout> {
+fn render_buffer(e: &mut Editor) -> io::Result<()> {
+    let buffer = e.buffers.get_mut(e.active_buffer).unwrap();
+    if !buffer.dirty {
+        return Ok(());
+    }
+    e.stdout
+        .queue(Clear(ClearType::All))?
+        .queue(MoveTo(0, 0))?
+        .queue(Print(&buffer.content))?;
+    buffer.dirty = false;
+    Ok(())
+}
+
+fn render_status_bar(e: &mut Editor) -> io::Result<()> {
     let fg: Color;
     let bg: Color;
     let text: &str;
@@ -60,7 +58,7 @@ fn render_status_bar(e: &mut Editor) -> io::Result<&mut Stdout> {
 
     let coords = format!(" {}:{} ", e.cursor.1, e.cursor.0);
 
-    Ok(e.stdout
+    e.stdout
         // mode
         .queue(MoveTo(0, e.size.1))?
         .queue(SetBackgroundColor(bg))?
@@ -74,5 +72,6 @@ fn render_status_bar(e: &mut Editor) -> io::Result<&mut Stdout> {
         .queue(SetBackgroundColor(bg))?
         .queue(SetForegroundColor(fg))?
         .queue(Print(coords))?
-        .queue(ResetColor)?)
+        .queue(ResetColor)?;
+    Ok(())
 }
