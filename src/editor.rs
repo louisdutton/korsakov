@@ -103,16 +103,6 @@ impl Editor {
         return self;
     }
 
-    /// Sets the text content and dirties the buffer
-    pub fn set_text(&mut self, index: usize, text: String) -> &mut Self {
-        if let Some(buffer) = self.buffers.get_mut(index) {
-            buffer.content = text;
-            buffer.dirty = true;
-            render(self).unwrap();
-        }
-        return self;
-    }
-
     /// Begins event loop, listen for and handle events
     pub fn listen(&mut self) -> io::Result<()> {
         loop {
