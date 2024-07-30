@@ -5,7 +5,7 @@ mod render;
 use clap::{command, Parser};
 use std::{
     fs,
-    io::{self, Read},
+    io::{self},
     path::Path,
 };
 
@@ -27,11 +27,6 @@ fn main() -> io::Result<()> {
 
     if let Some(file) = args.filename {
         if let Ok(text) = fs::read_to_string(Path::new(&file)) {
-            editor.set_text(text);
-        }
-    } else {
-        let mut text = String::new();
-        if let Ok(_) = io::stdin().read_to_string(&mut text) {
             editor.set_text(text);
         }
     }
