@@ -5,10 +5,7 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use std::{
-    fmt::format,
-    io::{self, Stdout, Write},
-};
+use std::io::{self, Stdout, Write};
 
 const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
