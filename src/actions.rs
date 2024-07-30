@@ -1,5 +1,4 @@
 use crate::editor::{Editor, Mode};
-use crossterm::{cursor::MoveLeft, style::Print, QueueableCommand};
 use std::{io, process::exit};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -70,7 +69,7 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
         }
         Action::Paste => {
             buff.dirty = true;
-            e.stdout.queue(Print(buff.content.as_str()))?;
+            buff.content.insert_str(e.cursor.0 as usize, "hello");
             exec(e, Action::CursorRight(len as u16))?;
         }
         Action::Quit => exit(1),
@@ -82,7 +81,6 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
         Action::Backspace => {
             if len > 0 && e.cursor.0 > 0 {
                 buff.dirty = true;
-                e.stdout.queue(MoveLeft(1))?.queue(Print(' '))?;
                 exec(e, Action::CursorLeft(1))?;
                 exec(e, Action::Delete)?;
             }
