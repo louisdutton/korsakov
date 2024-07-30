@@ -1,5 +1,6 @@
 use crate::{
     actions::{exec, Action},
+    buffer::Buffer,
     render::render,
 };
 use crossterm::{
@@ -22,24 +23,11 @@ pub enum Mode {
 }
 
 #[derive(Debug)]
-pub struct Buffer {
-    pub name: String,
-    pub content: String,
-}
-
-impl Buffer {
-    pub fn new(name: String, content: String) -> Self {
-        Buffer { name, content }
-    }
-}
-
-#[derive(Debug)]
 pub struct Editor {
     pub mode: Mode,
     pub stdout: Stdout,
     pub buffers: Vec<Buffer>,
     pub active_buffer: usize,
-    pub dirty: bool,
     pub cursor: (u16, u16),
     pub size: (u16, u16),
     nmap: HashMap<KeyCode, Action>,
@@ -62,7 +50,6 @@ impl Editor {
             mode: Mode::Navigate,
             active_buffer: 0,
             buffers: Vec::new(),
-            dirty: false,
             size: terminal::size()?,
             cursor: (0, 0),
             nmap: HashMap::from([
@@ -120,7 +107,7 @@ impl Editor {
     pub fn set_text(&mut self, index: usize, text: String) -> &mut Self {
         if let Some(buffer) = self.buffers.get_mut(index) {
             buffer.content = text;
-            self.dirty = true;
+            buffer.dirty = true;
             render(self).unwrap();
         }
         return self;

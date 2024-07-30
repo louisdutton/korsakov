@@ -1,7 +1,9 @@
 mod actions;
+mod buffer;
 mod editor;
 mod render;
 
+use buffer::Buffer;
 use clap::{command, Parser};
 use std::{
     fs,
@@ -9,7 +11,7 @@ use std::{
     path::Path,
 };
 
-use editor::{Buffer, Editor};
+use editor::Editor;
 
 #[derive(Parser)]
 #[command(name = "korsakov")]

@@ -67,28 +67,28 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
             e.set_mode(mode)?;
         }
         Action::Paste => {
+            buff.dirty = true;
             e.stdout.queue(Print(buff.content.as_str()))?;
             exec(e, Action::CursorRight(len as u16))?;
-            e.dirty = true;
         }
         Action::Quit => exit(1),
         Action::Input(ch) => {
+            buff.dirty = true;
             buff.content.insert(e.cursor.0.into(), ch);
             exec(e, Action::CursorRight(1))?;
-            e.dirty = true;
         }
         Action::Backspace => {
             if len > 0 && e.cursor.0 > 0 {
+                buff.dirty = true;
                 e.stdout.queue(MoveLeft(1))?.queue(Print(' '))?;
                 exec(e, Action::CursorLeft(1))?;
                 exec(e, Action::Delete)?;
-                e.dirty = true;
             }
         }
         Action::Delete => {
             if len > 0 {
                 buff.content.remove(e.cursor.0.into());
-                e.dirty = true;
+                buff.dirty = true;
             }
         }
         Action::Chain(actions) => {

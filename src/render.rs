@@ -2,28 +2,32 @@ use crate::editor::{Editor, Mode};
 use crossterm::{
     cursor::MoveTo,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
-    terminal::{Clear, ClearType},
     QueueableCommand,
 };
 use std::io::{self, Stdout, Write};
 
 const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
-// TODO create renderable trait
-pub fn render(e: &mut Editor) -> io::Result<()> {
-    if e.dirty {
-        render_buffer(e)?;
-        e.dirty = false;
-    };
-    render_status_bar(e)?;
-    e.stdout.flush()
+pub trait Renderable {
+    fn render(&mut self, stdout: &mut Stdout) -> io::Result<()>;
 }
 
-fn render_buffer(e: &mut Editor) -> io::Result<&mut Stdout> {
-    Ok(e.stdout
-        .queue(Clear(ClearType::All))?
-        .queue(MoveTo(0, 0))?
-        .queue(Print(&e.buffers.get(e.active_buffer).unwrap().content))?)
+trait Render {
+    fn render(&mut self, component: &mut dyn Renderable) -> io::Result<&mut Self>;
+}
+
+impl Render for Stdout {
+    fn render(&mut self, component: &mut dyn Renderable) -> io::Result<&mut Self> {
+        component.render(self)?;
+        Ok(self)
+    }
+}
+
+pub fn render(e: &mut Editor) -> io::Result<()> {
+    let buffer = e.buffers.get_mut(e.active_buffer).unwrap();
+    e.stdout.render(buffer);
+    render_status_bar(e)?;
+    e.stdout.flush()
 }
 
 fn render_status_bar(e: &mut Editor) -> io::Result<&mut Stdout> {
