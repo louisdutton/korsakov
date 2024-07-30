@@ -9,7 +9,7 @@ use std::{
     path::Path,
 };
 
-use editor::Editor;
+use editor::{Buffer, Editor};
 
 #[derive(Parser)]
 #[command(name = "korsakov")]
@@ -23,14 +23,14 @@ struct Args {
 
 fn main() -> io::Result<()> {
     let args = Args::parse();
-    let mut editor = Editor::new()?;
+    let mut buffer = Buffer::new(String::new(), String::new());
 
     if let Some(file) = args.filename {
+        buffer.name = file.clone();
         if let Ok(text) = fs::read_to_string(Path::new(&file)) {
-            editor.set_text(text);
+            buffer.content = text;
         }
     }
 
-    editor.listen()?;
-    Ok(())
+    Editor::new()?.add_buffer(buffer).listen()
 }

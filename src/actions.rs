@@ -27,6 +27,9 @@ pub enum Action {
 }
 
 pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
+    let buff = e.buffers.get_mut(e.active_buffer).unwrap();
+    let len = buff.content.len();
+
     _ = match action {
         Action::CursorUp(n) => {
             if e.cursor.1 > n - 1 {
@@ -60,20 +63,22 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
                 e.cursor.0 += n;
             }
         }
-        Action::SetMode(mode) => e.set_mode(mode)?,
+        Action::SetMode(mode) => {
+            e.set_mode(mode)?;
+        }
         Action::Paste => {
-            e.stdout.queue(Print(e.text.as_str()))?;
-            exec(e, Action::CursorRight(e.text.len() as u16))?;
+            e.stdout.queue(Print(buff.content.as_str()))?;
+            exec(e, Action::CursorRight(len as u16))?;
             e.dirty = true;
         }
         Action::Quit => exit(1),
         Action::Input(ch) => {
-            e.text.insert(e.cursor.0.into(), ch);
+            buff.content.insert(e.cursor.0.into(), ch);
             exec(e, Action::CursorRight(1))?;
             e.dirty = true;
         }
         Action::Backspace => {
-            if e.text.len() > 0 && e.cursor.0 > 0 {
+            if len > 0 && e.cursor.0 > 0 {
                 e.stdout.queue(MoveLeft(1))?.queue(Print(' '))?;
                 exec(e, Action::CursorLeft(1))?;
                 exec(e, Action::Delete)?;
@@ -81,8 +86,8 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
             }
         }
         Action::Delete => {
-            if e.text.len() > 0 {
-                e.text.remove(e.cursor.0.into());
+            if len > 0 {
+                buff.content.remove(e.cursor.0.into());
                 e.dirty = true;
             }
         }

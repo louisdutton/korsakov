@@ -23,7 +23,7 @@ fn render_buffer(e: &mut Editor) -> io::Result<&mut Stdout> {
     Ok(e.stdout
         .queue(Clear(ClearType::All))?
         .queue(MoveTo(0, 0))?
-        .queue(Print(&e.text))?)
+        .queue(Print(&e.buffers.get(e.active_buffer).unwrap().content))?)
 }
 
 fn render_status_bar(e: &mut Editor) -> io::Result<&mut Stdout> {

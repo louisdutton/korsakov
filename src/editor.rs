@@ -21,10 +21,24 @@ pub enum Mode {
     Command,
 }
 
+#[derive(Debug)]
+pub struct Buffer {
+    pub name: String,
+    pub content: String,
+}
+
+impl Buffer {
+    pub fn new(name: String, content: String) -> Self {
+        Buffer { name, content }
+    }
+}
+
+#[derive(Debug)]
 pub struct Editor {
     pub mode: Mode,
     pub stdout: Stdout,
-    pub text: String,
+    pub buffers: Vec<Buffer>,
+    pub active_buffer: usize,
     pub dirty: bool,
     pub cursor: (u16, u16),
     pub size: (u16, u16),
@@ -46,7 +60,8 @@ impl Editor {
         Ok(Editor {
             stdout,
             mode: Mode::Navigate,
-            text: String::new(),
+            active_buffer: 0,
+            buffers: Vec::new(),
             dirty: false,
             size: terminal::size()?,
             cursor: (0, 0),
@@ -95,11 +110,19 @@ impl Editor {
         Ok(())
     }
 
+    /// Adds a new buffer to the editor session
+    pub fn add_buffer(&mut self, buffer: Buffer) -> &mut Self {
+        self.buffers.push(buffer);
+        return self;
+    }
+
     /// Sets the text content and dirties the buffer
-    pub fn set_text(&mut self, text: String) -> &mut Self {
-        self.text = text;
-        self.dirty = true;
-        render(self).unwrap();
+    pub fn set_text(&mut self, index: usize, text: String) -> &mut Self {
+        if let Some(buffer) = self.buffers.get_mut(index) {
+            buffer.content = text;
+            self.dirty = true;
+            render(self).unwrap();
+        }
         return self;
     }
 
