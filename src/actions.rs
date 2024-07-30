@@ -29,6 +29,10 @@ pub enum Action {
 pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
     let buff = e.buffers.get_mut(e.active_buffer).unwrap();
     let len = buff.content.len();
+    let line_end = match e.mode {
+        Mode::Insert => e.size.0.min(len as u16) + 1,
+        _ => e.size.0.min(len as u16),
+    };
 
     _ = match action {
         Action::CursorUp(n) => {
@@ -42,26 +46,24 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
             }
         }
         Action::CursorLeft(n) => {
-            if e.cursor.0 > n - 1 {
-                e.cursor.0 -= n;
+            e.cursor.0 = e.cursor.0.saturating_sub(n);
+        }
+        Action::CursorRight(n) => {
+            if e.cursor.0 < line_end.saturating_sub(n) {
+                e.cursor.0 += n;
             }
         }
         Action::CursorLineStart => {
             e.cursor.0 = 0;
         }
         Action::CursorLineEnd => {
-            e.cursor.0 = e.size.0;
+            e.cursor.0 = line_end.saturating_sub(1);
         }
         Action::CursorBufferStart => {
             e.cursor.1 = 0;
         }
         Action::CursorBufferEnd => {
             e.cursor.1 = e.size.1;
-        }
-        Action::CursorRight(n) => {
-            if e.cursor.0 < e.size.0 - n {
-                e.cursor.0 += n;
-            }
         }
         Action::SetMode(mode) => {
             e.set_mode(mode)?;
