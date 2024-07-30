@@ -21,7 +21,8 @@ fn render_buffer(e: &mut Editor) -> io::Result<()> {
         return Ok(());
     }
     e.stdout
-        .queue(Clear(ClearType::All))?
+        .queue(MoveTo(buffer.content.len() as u16, 0))?
+        .queue(Clear(ClearType::UntilNewLine))?
         .queue(MoveTo(0, 0))?
         .queue(Print(&buffer.content))?;
     buffer.dirty = false;
