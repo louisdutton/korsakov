@@ -4,8 +4,10 @@ use crate::{
     render::render,
 };
 use crossterm::{
-    cursor::{MoveTo, SetCursorStyle},
+    cursor::{MoveLeft, MoveTo, SetCursorStyle},
     event::{read, Event, KeyCode},
+    queue,
+    style::{Color, Print, PrintStyledContent, SetBackgroundColor, StyledContent, Stylize},
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::{
@@ -117,8 +119,16 @@ impl Editor {
         })
     }
 
+    pub fn get_active_buffer(&self) -> &Buffer {
+        self.buffers.get(self.active_buffer).unwrap()
+    }
+
     pub fn get_active_buffer_mut(&mut self) -> &mut Buffer {
         self.buffers.get_mut(self.active_buffer).unwrap()
+    }
+
+    pub fn get_char_at(&self, index: usize) -> char {
+        self.get_active_buffer().content.chars().nth(index).unwrap()
     }
 
     /// Sets the input mode
@@ -156,7 +166,18 @@ impl Editor {
         loop {
             render(self)?;
 
-            self.stdout.execute(MoveTo(self.cursor.0, self.cursor.1))?;
+            // cursor
+            self.stdout.queue(MoveTo(self.cursor.0, self.cursor.1))?;
+
+            // selection
+            if self.mode == Mode::Visual {
+                let hovered_char = self.get_char_at((self.cursor.0) as usize);
+                self.stdout
+                    .queue(PrintStyledContent(hovered_char.on_dark_grey()))?
+                    .queue(MoveLeft(1))?;
+            }
+
+            self.stdout.flush()?;
 
             // TODO use poll to allow for async operations
             match read()? {
