@@ -1,7 +1,10 @@
 use crate::editor::{Editor, Mode};
 use crossterm::{
     cursor::MoveTo,
-    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+    style::{
+        Color, Print, PrintStyledContent, ResetColor, SetBackgroundColor, SetForegroundColor,
+        Stylize,
+    },
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
@@ -62,17 +65,11 @@ fn render_status_bar(e: &mut Editor) -> io::Result<()> {
     e.stdout
         // mode
         .queue(MoveTo(0, e.size.1))?
-        .queue(SetBackgroundColor(bg))?
-        .queue(SetForegroundColor(fg))?
-        .queue(Print(text))?
-        .queue(ResetColor)?
+        .queue(PrintStyledContent(text.with(fg).on(bg)))?
         // filename
         .queue(Print(" example.txt "))?
         // coordinates
         .queue(MoveTo(e.size.0 - coords.len() as u16, e.size.1))?
-        .queue(SetBackgroundColor(bg))?
-        .queue(SetForegroundColor(fg))?
-        .queue(Print(coords))?
-        .queue(ResetColor)?;
+        .queue(PrintStyledContent(coords.with(fg).on(bg)))?;
     Ok(())
 }
