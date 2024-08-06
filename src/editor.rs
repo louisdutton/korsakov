@@ -81,6 +81,7 @@ impl Editor {
                 ),
             ]),
             vmap: HashMap::from([
+                (KeyCode::Esc, Action::SetMode(Mode::Navigate)),
                 (KeyCode::Char('k'), Action::CursorUp(1)),
                 (KeyCode::Char('j'), Action::CursorDown(1)),
                 (KeyCode::Char('h'), Action::CursorLeft(1)),
@@ -89,8 +90,20 @@ impl Editor {
                 (KeyCode::Char('L'), Action::CursorLineEnd),
                 (KeyCode::Char('K'), Action::CursorBufferStart),
                 (KeyCode::Char('J'), Action::CursorBufferEnd),
-                (KeyCode::Char('d'), Action::DeleteSelection),
-                (KeyCode::Char('x'), Action::DeleteSelection),
+                (
+                    KeyCode::Char('d'),
+                    Action::Chain(vec![
+                        Action::DeleteSelection,
+                        Action::SetMode(Mode::Navigate),
+                    ]),
+                ),
+                (
+                    KeyCode::Char('x'),
+                    Action::Chain(vec![
+                        Action::DeleteSelection,
+                        Action::SetMode(Mode::Navigate),
+                    ]),
+                ),
                 (KeyCode::Char('y'), Action::YankSelection),
                 (
                     KeyCode::Char('c'),
