@@ -30,6 +30,8 @@ pub enum Action {
 }
 
 pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
+    e.log(format!("{:?}", action));
+
     let buff = e.buffers.get_mut(e.active_buffer).unwrap();
     let len = buff.content.len();
     let line_end = match e.mode {
