@@ -1,10 +1,7 @@
 use crate::editor::{Editor, Mode};
 use crossterm::{
     cursor::MoveTo,
-    style::{
-        Color, Print, PrintStyledContent, ResetColor, SetBackgroundColor, SetForegroundColor,
-        Stylize,
-    },
+    style::{Color, Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
@@ -13,22 +10,38 @@ use std::io::{self, Write};
 const BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
 
 pub fn render(e: &mut Editor) -> io::Result<()> {
-    render_buffer(e)?;
+    let buffer = e.get_active_buffer_mut();
+    if buffer.dirty {
+        render_buffer(e)?;
+    }
     render_status_bar(e)?;
     e.stdout.flush()
 }
 
 fn render_buffer(e: &mut Editor) -> io::Result<()> {
     let buffer = e.buffers.get_mut(e.active_buffer).unwrap();
-    if !buffer.dirty {
-        return Ok(());
-    }
+    let content = buffer.content.as_str();
+    let content_len = content.len() as u16;
+
     e.stdout
-        .queue(MoveTo(buffer.content.len() as u16, 0))?
+        .queue(MoveTo(content_len, 0))?
         .queue(Clear(ClearType::UntilNewLine))?
-        .queue(MoveTo(0, 0))?
-        .queue(Print(&buffer.content))?;
-    buffer.dirty = false;
+        .queue(MoveTo(0, 0))?;
+
+    match &buffer.selection {
+        Some(selection) => {
+            e.stdout
+                .queue(Print(content.get(..selection.start as usize).unwrap()))?
+                .queue(PrintStyledContent(
+                    selection.apply(content).unwrap().on_dark_grey(),
+                ))?
+                .queue(Print(content.get((selection.end as usize)..).unwrap()))?;
+        }
+        _ => {
+            e.stdout.queue(Print(content))?;
+        }
+    }
+
     Ok(())
 }
 
