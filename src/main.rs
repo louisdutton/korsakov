@@ -31,6 +31,7 @@ fn main() -> io::Result<()> {
         buffer.name = file.clone();
         if let Ok(text) = fs::read_to_string(Path::new(&file)) {
             buffer.content = text;
+            buffer.dirty = true;
         }
     }
 

@@ -141,6 +141,8 @@ impl Editor {
     /// Begins event loop, listen for and handle events
     pub fn listen(&mut self) -> io::Result<()> {
         loop {
+            render(self)?;
+
             self.stdout.execute(MoveTo(self.cursor.0, self.cursor.1))?;
 
             // TODO use poll to allow for async operations
@@ -167,8 +169,6 @@ impl Editor {
                 }
                 _ => {}
             }
-
-            render(self)?;
         }
     }
 }

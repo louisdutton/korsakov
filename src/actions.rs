@@ -99,8 +99,8 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
         }
         Action::Delete => {
             if len > 0 {
-                buff.content.remove(e.cursor.0.into());
                 buff.dirty = true;
+                buff.content.remove(e.cursor.0.into());
             }
         }
         Action::Chain(actions) => {
@@ -112,7 +112,8 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
             if let Some(selection) = &buff.selection {
                 let start = selection.start.min(selection.end) as usize;
                 let end = selection.start.max(selection.end) as usize;
-                buff.content.replace_range(start..end, &"")
+                buff.dirty = true;
+                buff.content.replace_range(start..end, &"");
             }
         }
         Action::YankSelection => todo!(),
