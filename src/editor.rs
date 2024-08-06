@@ -4,10 +4,8 @@ use crate::{
     render::render,
 };
 use crossterm::{
-    cursor::{MoveLeft, MoveTo, SetCursorStyle},
+    cursor::{MoveTo, SetCursorStyle},
     event::{read, Event, KeyCode},
-    queue,
-    style::{Color, Print, PrintStyledContent, SetBackgroundColor, StyledContent, Stylize},
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::{
@@ -167,17 +165,7 @@ impl Editor {
             render(self)?;
 
             // cursor
-            self.stdout.queue(MoveTo(self.cursor.0, self.cursor.1))?;
-
-            // selection
-            if self.mode == Mode::Visual {
-                let hovered_char = self.get_char_at((self.cursor.0) as usize);
-                self.stdout
-                    .queue(PrintStyledContent(hovered_char.on_dark_grey()))?
-                    .queue(MoveLeft(1))?;
-            }
-
-            self.stdout.flush()?;
+            self.stdout.execute(MoveTo(self.cursor.0, self.cursor.1))?;
 
             // TODO use poll to allow for async operations
             match read()? {
