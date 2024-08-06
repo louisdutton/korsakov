@@ -51,16 +51,16 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
         Action::CursorLeft(n) => {
             e.cursor.0 = e.cursor.0.saturating_sub(n);
             let new_pos = e.cursor.0;
-            if let Some(sel) = &mut e.get_active_buffer_mut().selection {
-                sel.end = new_pos;
+            if let Some(selection) = &mut e.get_active_buffer_mut().selection {
+                selection.end = new_pos + 1;
             }
         }
         Action::CursorRight(n) => {
             if e.cursor.0 < line_end.saturating_sub(n) {
                 e.cursor.0 += n;
                 let new_pos = e.cursor.0;
-                if let Some(sel) = &mut e.get_active_buffer_mut().selection {
-                    sel.end = new_pos;
+                if let Some(selection) = &mut e.get_active_buffer_mut().selection {
+                    selection.end = new_pos + 1;
                 }
             }
         }
@@ -114,6 +114,7 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
                 let end = selection.start.max(selection.end) as usize;
                 buff.dirty = true;
                 buff.content.replace_range(start..end, &"");
+                e.cursor.0 = selection.start
             }
         }
         Action::YankSelection => todo!(),
