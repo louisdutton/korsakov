@@ -6,10 +6,12 @@ use crate::{
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     event::{read, Event, KeyCode},
+    style::Print,
     terminal, ExecutableCommand, QueueableCommand,
 };
 use std::{
     collections::HashMap,
+    fmt::Display,
     io::{self, stdout, Result, Stdout, Write},
 };
 use terminal::{Clear, ClearType, EnterAlternateScreen};
@@ -192,5 +194,15 @@ impl Editor {
                 _ => {}
             }
         }
+    }
+
+    pub fn log<T: Display>(&mut self, msg: T) {
+        self.stdout
+            .queue(MoveTo(0, self.size.1 - 2))
+            .unwrap()
+            .queue(Print(msg))
+            .unwrap()
+            .queue(Clear(ClearType::UntilNewLine))
+            .unwrap();
     }
 }
