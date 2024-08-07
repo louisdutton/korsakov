@@ -145,6 +145,10 @@ impl Editor {
 
     /// Sets the input mode
     pub fn set_mode(&mut self, mode: Mode) -> io::Result<()> {
+        if self.mode == Mode::Visual {
+            self.get_active_buffer_mut().selection = None;
+        }
+
         match mode {
             Mode::Navigate => {
                 self.stdout.queue(SetCursorStyle::SteadyBlock)?;
