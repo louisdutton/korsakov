@@ -1,3 +1,5 @@
+use crossterm::terminal;
+
 use crate::editor::{Editor, Mode};
 use std::{io, process::exit};
 
@@ -86,7 +88,10 @@ pub fn exec(e: &mut Editor, action: Action) -> io::Result<()> {
             buff.content.insert_str(e.cursor.0 as usize, "hello");
             exec(e, Action::CursorRight(len as u16))?;
         }
-        Action::Quit => exit(1),
+        Action::Quit => {
+            terminal::disable_raw_mode().unwrap();
+            exit(1);
+        }
         Action::Input(ch) => {
             buff.dirty = true;
             buff.content.insert(e.cursor.0.into(), ch);

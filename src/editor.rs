@@ -13,6 +13,7 @@ use std::{
     collections::HashMap,
     fmt::Display,
     io::{self, stdout, Result, Stdout, Write},
+    panic,
 };
 use terminal::{Clear, ClearType, EnterAlternateScreen};
 
@@ -41,6 +42,14 @@ impl Editor {
     pub fn new() -> Result<Editor> {
         let mut stdout = stdout();
         terminal::enable_raw_mode()?;
+
+        let default_panic = panic::take_hook();
+        panic::set_hook(Box::new(move |info| {
+            terminal::disable_raw_mode().unwrap();
+            println!();
+            default_panic(info);
+        }));
+
         stdout
             .queue(EnterAlternateScreen)?
             .queue(Clear(ClearType::All))?
