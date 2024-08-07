@@ -33,7 +33,10 @@ fn render_buffer(e: &mut Editor) -> io::Result<()> {
             e.stdout
                 .queue(Print(content.get(..selection.start as usize).unwrap()))?
                 .queue(PrintStyledContent(
-                    selection.apply(content).unwrap().on_dark_grey(),
+                    selection
+                        .apply(content)
+                        .expect("selection within content bounds")
+                        .on_dark_grey(),
                 ))?
                 .queue(Print(content.get((selection.end as usize)..).unwrap()))?;
         }
