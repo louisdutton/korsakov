@@ -1,6 +1,7 @@
-package korsaov
+package korsakov
 
 import "core:encoding/ansi"
+import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:text/edit"
@@ -47,17 +48,8 @@ main :: proc() {
 		case .Normal:
 		}
 
-		os.write_string(
-			os.stdout,
-			strings.concatenate(
-				{
-					"\r", // wipe current line
-					strings.to_string(builder),
-					CLEAR_TO_END_OF_LINE,
-				},
-			),
-		)
-		os.flush(os.stdout)
+		queue("\r", strings.to_string(state.builder^), CLEAR_TO_END_OF_LINE)
+		flush()
 	}
 }
 
