@@ -1,4 +1,2 @@
-/target
-vendor/*/target
 .direnv
-*.log
+*.bin

@@ -10,25 +10,26 @@ Buffer :: struct {
 	filename: string,
 	cursor:   Vec2,
 	modified: bool,
+	scroll:   int,
 }
 
 /// Creates a new empty buffer
 buffer_new :: proc() -> Buffer {
 	buffer := Buffer {
-		lines    = make([dynamic]string),
+		lines    = make([dynamic]string), // must have at least one empty line
 		filename = "",
 		cursor   = vec2(0, 0),
 		modified = false,
+		scroll   = 0,
 	}
 
-	// Start with one empty line
 	append(&buffer.lines, "")
 
 	return buffer
 }
 
 /// Creates a buffer from a file
-buffer_from_file :: proc(filename: string) -> (Buffer, os.Errno) {
+buffer_from_file :: proc(filename: string) -> (Buffer, os.Error) {
 	data, ok := os.read_entire_file(filename)
 	if !ok {
 		return buffer_new(), os.ENOENT
@@ -76,6 +77,11 @@ buffer_get_line :: proc(buffer: ^Buffer, line_idx: int) -> string {
 		return buffer.lines[line_idx]
 	}
 	return ""
+}
+
+// Returns the char at then given position
+buffer_get_char :: proc(buffer: ^Buffer, x, y: int) -> rune {
+	return rune(buffer.lines[y][x])
 }
 
 /// Sets a line in the buffer

@@ -1,4 +1,4 @@
-package terminal
+package tty
 
 import "core:os"
 import "core:strings"

@@ -1,37 +1,41 @@
 package korsakov
 
 import "core:fmt"
+import "core:os"
 import "core:strings"
-import "core:terminal/ansi"
+import "core:unicode/utf8"
+import "tty"
 
-/// Renders the editor to the terminal
+// Renders the editor to the terminal
 render_editor :: proc(editor: ^Editor) {
-	clear_screen()
-	move_cursor(1, 1)
+	buffer := editor_active_buffer(editor)
 
-	if buffer := editor_active_buffer(editor); buffer != nil {
-		render_buffer(buffer, editor.size)
-		render_cursor(buffer)
-		render_status_bar(editor, buffer)
-	}
-
-	// Flush output
-	fmt.print("")
+	render_buffer(buffer, editor.size)
+	render_status_bar(editor, buffer)
 }
 
-/// Renders the buffer content
+// Renders the buffer content
 render_buffer :: proc(buffer: ^Buffer, size: Vec2) {
-	visible_lines := size.y - 2 // Leave space for status bar
+	STATUS_BAR_HEIGHT :: 2
+	visible_lines := size.y - STATUS_BAR_HEIGHT
 
-	for i in 0 ..< visible_lines {
-		move_cursor(1, i + 1)
+	number_column_width := len(buffer.lines) / 10
+	max_width := size.x - number_column_width
+
+	for i in buffer.scroll ..< visible_lines {
+		tty.cursor_move(0, i)
 
 		if i < buffer_line_count(buffer) {
 			line := buffer_get_line(buffer, i)
 			// Truncate line if it's too long for the screen
 			if len(line) > size.x {
-				fmt.print(line[:size.x])
+				tty.write(line[:size.x])
 			} else {
+				// line number
+				fmt.print(i)
+
+				// actual line
+				tty.cursor_move(number_column_width + 1, i)
 				fmt.print(line)
 			}
 		} else {
@@ -39,24 +43,27 @@ render_buffer :: proc(buffer: ^Buffer, size: Vec2) {
 			fmt.print("~")
 		}
 
-		// Clear rest of line
-		fmt.print("\x1b[K")
+		tty.clear_line()
 	}
+
+	render_cursor(buffer, number_column_width)
 }
 
-/// Renders the cursor at the current position
-render_cursor :: proc(buffer: ^Buffer) {
-	// Move cursor to buffer position (convert to 1-based terminal coordinates)
-	move_cursor(buffer.cursor.x + 1, buffer.cursor.y + 1)
+// Renders the cursor
+render_cursor :: proc(buffer: ^Buffer, num_col_w: int) {
+	tty.cursor_move(buffer.cursor.x + num_col_w + 1, buffer.cursor.y)
+	tty.sgr_invert()
+	os.write_rune(os.stdout, buffer_get_char(buffer, buffer.cursor.x, buffer.cursor.y))
+	tty.sgr_reset()
 }
 
-/// Renders the status bar
+// Renders the status bar
 render_status_bar :: proc(editor: ^Editor, buffer: ^Buffer) {
-	status_y := editor.size.y
-	move_cursor(1, status_y)
+	status_y := editor.size.y - 1
+	tty.cursor_move(0, status_y)
 
 	// Set background color for status bar
-	fmt.print("\x1b[7m") // Reverse video
+	tty.sgr_invert()
 
 	// Build status string
 	status_builder := strings.builder_make()
@@ -66,13 +73,13 @@ render_status_bar :: proc(editor: ^Editor, buffer: ^Buffer) {
 	mode_str := ""
 	switch editor.mode {
 	case .Navigate:
-		mode_str = "NORMAL"
+		mode_str = " NAV "
 	case .Insert:
-		mode_str = "INSERT"
+		mode_str = " INS "
 	case .Visual:
-		mode_str = "VISUAL"
+		mode_str = " VIS "
 	case .Command:
-		mode_str = "COMMAND"
+		mode_str = " CMD "
 	}
 	strings.write_string(&status_builder, mode_str)
 
@@ -92,7 +99,7 @@ render_status_bar :: proc(editor: ^Editor, buffer: ^Buffer) {
 	// Cursor position
 	strings.write_string(
 		&status_builder,
-		fmt.tprintf(" %d,%d", buffer.cursor.y + 1, buffer.cursor.x + 1),
+		fmt.tprintf(" %d:%d", buffer.cursor.y + 1, buffer.cursor.x + 1),
 	)
 
 	status := strings.to_string(status_builder)
@@ -101,9 +108,8 @@ render_status_bar :: proc(editor: ^Editor, buffer: ^Buffer) {
 	fmt.print(status)
 	padding := editor.size.x - len(status)
 	for i in 0 ..< padding {
-		fmt.print(" ")
+		tty.write(" ")
 	}
 
-	// Reset colors
-	fmt.print(ansi.CSI + ansi.RESET + ansi.SGR)
+	tty.sgr_reset()
 }
