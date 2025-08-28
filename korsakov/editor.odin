@@ -67,20 +67,20 @@ editor_load_file :: proc(editor: ^Editor, filename: string) -> os.Error {
 }
 
 /// Adds a buffer to the editor
-editor_add_buffer :: proc(editor: ^Editor, buffer: buffer.Buffer) {
-	append(&editor.buffers, buffer)
-	if len(editor.buffers) == 1 {
-		editor.active_buffer = 0
+editor_add_buffer :: proc(e: ^Editor, b: buffer.Buffer) {
+	append(&e.buffers, b)
+	if len(e.buffers) == 1 {
+		e.active_buffer = 0
 	}
 }
 
 /// Gets the currently active buffer
-editor_active_buffer :: proc(editor: ^Editor) -> ^buffer.Buffer {
-	return &editor.buffers[editor.active_buffer]
+editor_active_buffer :: proc(e: ^Editor) -> ^buffer.Buffer {
+	return &e.buffers[e.active_buffer]
 }
 
 /// Main event loop for interactive mode
-editor_listen :: proc(editor: ^Editor) {
+editor_listen :: proc(e: ^Editor) {
 	original_state := tty.set_raw_mode()
 	tty.cursor_hide()
 	tty.alt_screen_enable()
@@ -91,27 +91,12 @@ editor_listen :: proc(editor: ^Editor) {
 		tty.restore(&original_state)
 	}
 
-	render_editor(editor)
+	render_editor(e)
 	char: rune
 
-	for editor.running {
-		render_editor(editor)
+	for e.running {
+		render_editor(e)
+		handle_input(e, tty.read())
 
-		buf := editor_active_buffer(editor)
-		current_line := buffer.get_line(buf, buf.cursor.y)
-
-		char := tty.read()
-		switch char {
-		case 'q', 27:
-			editor.running = false
-		case 'j':
-			buffer.cursor_down(buf)
-		case 'k':
-			buffer.cursor_up(buf)
-		case 'h':
-			buffer.cursor_left(buf)
-		case 'l':
-			buffer.cursor_right(buf)
-		}
 	}
 }

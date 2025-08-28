@@ -8,15 +8,16 @@ import "core:unicode/utf8"
 import "tty"
 
 // Renders the editor to the terminal
-render_editor :: proc(editor: ^Editor) {
-	b := editor_active_buffer(editor)
+render_editor :: proc(e: ^Editor) {
+	b := editor_active_buffer(e)
 
-	render_buffer(b, editor.size)
-	render_status_bar(editor, b)
+	render_buffer(e, b)
+	render_status_bar(e, b)
 }
 
 // Renders the buffer content
-render_buffer :: proc(b: ^buffer.Buffer, size: Vec2) {
+render_buffer :: proc(e: ^Editor, b: ^buffer.Buffer) {
+	size := e.size
 	STATUS_BAR_HEIGHT :: 2
 	visible_lines := size.y - STATUS_BAR_HEIGHT
 
