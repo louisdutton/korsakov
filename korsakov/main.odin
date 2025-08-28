@@ -1,10 +1,8 @@
 package korsakov
 
-import "core:fmt"
+import "buffer"
 import "core:log"
 import "core:os"
-import "core:slice"
-import "core:strings"
 import "tty"
 
 main :: proc() {
@@ -35,6 +33,6 @@ init_buffer :: proc(args: tty.Args, editor: ^Editor) {
 	if len(args.filename) > 0 {
 		if editor_load_file(editor, args.filename) != os.ERROR_NONE do panic("unable to load file")
 	} else {
-		editor_add_buffer(editor, buffer_new())
+		editor_add_buffer(editor, buffer.new())
 	}
 }

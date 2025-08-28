@@ -1,5 +1,6 @@
 package korsakov
 
+import "buffer"
 import "core:fmt"
 
 Action :: enum {
@@ -31,75 +32,54 @@ ActionData :: struct {
 }
 
 /// Executes an action on the editor
-execute_action :: proc(editor: ^Editor, action_data: ActionData) {
+execute_action :: proc(e: ^Editor, action_data: ActionData) {
+	b := editor_active_buffer(e)
+
 	switch action_data.action {
 	case .MoveLeft:
-		if buffer := editor_active_buffer(editor); buffer != nil {
-			buffer.cursor.x = max(0, buffer.cursor.x - 1)
-		}
+		b.cursor.x = max(0, b.cursor.x - 1)
 
 	case .MoveRight:
-		if buffer := editor_active_buffer(editor); buffer != nil {
-			line := buffer_get_line(buffer, buffer.cursor.y)
-			buffer.cursor.x = min(len(line), buffer.cursor.x + 1)
-		}
+		buffer.cursor_right(b)
 
 	case .MoveUp:
-		if buffer := editor_active_buffer(editor); buffer != nil {
-			buffer.cursor.y = max(0, buffer.cursor.y - 1)
-			// Clamp x to line length
-			line := buffer_get_line(buffer, buffer.cursor.y)
-			buffer.cursor.x = min(buffer.cursor.x, len(line))
-		}
+		buffer.cursor_up(b)
 
 	case .MoveDown:
-		if buffer := editor_active_buffer(editor); buffer != nil {
-			buffer.cursor.y = min(buffer_line_count(buffer) - 1, buffer.cursor.y + 1)
-			// Clamp x to line length
-			line := buffer_get_line(buffer, buffer.cursor.y)
-			buffer.cursor.x = min(buffer.cursor.x, len(line))
-		}
+		buffer.cursor_down(b)
 
 	case .EnterInsertMode:
-		editor.mode = .Insert
+		e.mode = .Insert
 
 	case .EnterVisualMode:
-		editor.mode = .Visual
+		e.mode = .Visual
 
 	case .EnterCommandMode:
-		editor.mode = .Command
+		e.mode = .Command
 
 	case .ExitToNavigateMode:
-		editor.mode = .Navigate
+		e.mode = .Navigate
 
 	case .InsertChar:
-		if editor.mode == .Insert {
-			if buffer := editor_active_buffer(editor); buffer != nil {
-				buffer_insert_char(buffer, action_data.char_data)
-			}
+		if e.mode == .Insert {
+			buffer.insert_char(b, action_data.char_data)
 		}
 
 	case .DeleteChar:
-		if buffer := editor_active_buffer(editor); buffer != nil {
-			buffer_delete_char(buffer)
-		}
+		buffer.delete_char(b)
 
 	case .InsertNewLine:
-		if editor.mode == .Insert {
-			if buffer := editor_active_buffer(editor); buffer != nil {
-				// TODO: Implement newline insertion
-				fmt.println("TODO: Insert newline")
-			}
+		if e.mode == .Insert {
+			// TODO: Implement newline insertion
+			fmt.println("TODO: Insert newline")
 		}
 
 	case .SaveFile:
-		if buffer := editor_active_buffer(editor); buffer != nil {
-			if err := buffer_save(buffer); err != 0 {
-				fmt.printf("Error saving file: %v\n", err)
-			}
+		if err := buffer.write(b); err != 0 {
+			fmt.printf("Error saving file: %v\n", err)
 		}
 
 	case .QuitEditor:
-		editor.running = false
+		e.running = false
 	}
 }

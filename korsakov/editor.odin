@@ -1,5 +1,6 @@
 package korsakov
 
+import buffer "buffer"
 import "core:fmt"
 import "core:log"
 import "core:math"
@@ -20,7 +21,7 @@ vec2 :: proc(x, y: int) -> Vec2 {return Vec2{x, y}}
 
 Editor :: struct {
 	mode:           Mode,
-	buffers:        [dynamic]Buffer,
+	buffers:        [dynamic]buffer.Buffer,
 	active_buffer:  int,
 	size:           Vec2,
 	commands:       CommandRegistry,
@@ -32,7 +33,7 @@ Editor :: struct {
 editor_new_headless :: proc() -> Editor {
 	return {
 		mode = .Navigate,
-		buffers = make([dynamic]Buffer),
+		buffers = make([dynamic]buffer.Buffer),
 		active_buffer = 0,
 		size = vec2(80, 24),
 		commands = command_registry_new(),
@@ -45,7 +46,7 @@ editor_new_headless :: proc() -> Editor {
 editor_new :: proc() -> Editor {
 	editor := Editor {
 		mode           = .Navigate,
-		buffers        = make([dynamic]Buffer),
+		buffers        = make([dynamic]buffer.Buffer),
 		active_buffer  = 0,
 		size           = tty.get_terminal_size(), // TODO: Get actual terminal size
 		commands       = command_registry_new(),
@@ -60,8 +61,8 @@ editor_new :: proc() -> Editor {
 
 /// Destroys the editor and cleans up resources
 editor_destroy :: proc(editor: ^Editor) {
-	for &buffer in editor.buffers {
-		buffer_destroy(&buffer)
+	for &buf in editor.buffers {
+		buffer.destroy(&buf)
 	}
 	delete(editor.buffers)
 	command_registry_destroy(&editor.commands)
@@ -69,7 +70,7 @@ editor_destroy :: proc(editor: ^Editor) {
 
 /// Loads a file into the editor
 editor_load_file :: proc(editor: ^Editor, filename: string) -> os.Error {
-	buffer := buffer_from_file(filename) or_return
+	buffer := buffer.read(filename) or_return
 	append(&editor.buffers, buffer)
 	if len(editor.buffers) == 1 {
 		editor.active_buffer = 0
@@ -79,7 +80,7 @@ editor_load_file :: proc(editor: ^Editor, filename: string) -> os.Error {
 }
 
 /// Adds a buffer to the editor
-editor_add_buffer :: proc(editor: ^Editor, buffer: Buffer) {
+editor_add_buffer :: proc(editor: ^Editor, buffer: buffer.Buffer) {
 	append(&editor.buffers, buffer)
 	if len(editor.buffers) == 1 {
 		editor.active_buffer = 0
@@ -87,7 +88,7 @@ editor_add_buffer :: proc(editor: ^Editor, buffer: Buffer) {
 }
 
 /// Gets the currently active buffer
-editor_active_buffer :: proc(editor: ^Editor) -> ^Buffer {
+editor_active_buffer :: proc(editor: ^Editor) -> ^buffer.Buffer {
 	return &editor.buffers[editor.active_buffer]
 }
 
@@ -113,20 +114,21 @@ editor_listen :: proc(editor: ^Editor) {
 	for editor.running {
 		render_editor(editor)
 
-		buffer := editor_active_buffer(editor)
+		buf := editor_active_buffer(editor)
+		current_line := buffer.get_line(buf, buf.cursor.y)
 
 		char := tty.read()
 		switch char {
 		case 'q', 27:
 			editor.running = false
 		case 'j':
-			buffer.cursor.y = min(buffer.cursor.y + 1, len(buffer.lines))
+			buffer.cursor_down(buf)
 		case 'k':
-			buffer.cursor.y = max(buffer.cursor.y - 1, 0)
+			buffer.cursor_up(buf)
 		case 'h':
-			buffer.cursor.x = max(buffer.cursor.x - 1, 0)
+			buffer.cursor_left(buf)
 		case 'l':
-			buffer.cursor.x = min(buffer.cursor.x + 1, editor.size.x)
+			buffer.cursor_right(buf)
 		}
 	}
 }

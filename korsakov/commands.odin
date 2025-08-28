@@ -1,5 +1,6 @@
 package korsakov
 
+import "buffer"
 import "core:fmt"
 import "core:slice"
 import "core:strings"
@@ -84,8 +85,8 @@ command_execute :: proc(registry: ^CommandRegistry, editor: ^Editor, command_lin
 
 /// Write command - saves the current buffer
 command_write :: proc(editor: ^Editor, args: []string) {
-	if buffer := editor_active_buffer(editor); buffer != nil {
-		if err := buffer_save(buffer); err != 0 {
+	if b := editor_active_buffer(editor); b != nil {
+		if err := buffer.write(b); err != 0 {
 			fmt.printf("Error saving file: %v\n", err)
 		} else {
 			fmt.println("File saved")
@@ -97,8 +98,8 @@ command_write :: proc(editor: ^Editor, args: []string) {
 command_quit :: proc(editor: ^Editor, args: []string) {
 	// Check if any buffers are modified
 	has_unsaved := false
-	for &buffer in editor.buffers {
-		if buffer.modified {
+	for &b in editor.buffers {
+		if b.modified {
 			has_unsaved = true
 			break
 		}
@@ -113,8 +114,8 @@ command_quit :: proc(editor: ^Editor, args: []string) {
 
 /// Write and quit command - saves then exits
 command_write_quit :: proc(editor: ^Editor, args: []string) {
-	if buffer := editor_active_buffer(editor); buffer != nil {
-		if err := buffer_save(buffer); err != 0 {
+	if b := editor_active_buffer(editor); b != nil {
+		if err := buffer.write(b); err != 0 {
 			fmt.printf("Error saving file: %v\n", err)
 			return
 		}

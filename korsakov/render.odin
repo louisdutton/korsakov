@@ -1,5 +1,6 @@
 package korsakov
 
+import "buffer"
 import "core:fmt"
 import "core:os"
 import "core:strings"
@@ -8,25 +9,25 @@ import "tty"
 
 // Renders the editor to the terminal
 render_editor :: proc(editor: ^Editor) {
-	buffer := editor_active_buffer(editor)
+	b := editor_active_buffer(editor)
 
-	render_buffer(buffer, editor.size)
-	render_status_bar(editor, buffer)
+	render_buffer(b, editor.size)
+	render_status_bar(editor, b)
 }
 
 // Renders the buffer content
-render_buffer :: proc(buffer: ^Buffer, size: Vec2) {
+render_buffer :: proc(b: ^buffer.Buffer, size: Vec2) {
 	STATUS_BAR_HEIGHT :: 2
 	visible_lines := size.y - STATUS_BAR_HEIGHT
 
-	number_column_width := len(buffer.lines) / 10
+	number_column_width := len(b.lines) / 10
 	max_width := size.x - number_column_width
 
-	for i in buffer.scroll ..< visible_lines {
+	for i in b.scroll ..< visible_lines {
 		tty.cursor_move(0, i)
 
-		if i < buffer_line_count(buffer) {
-			line := buffer_get_line(buffer, i)
+		if i < buffer.line_count(b) {
+			line := buffer.get_line(b, i)
 			// Truncate line if it's too long for the screen
 			if len(line) > size.x {
 				tty.write(line[:size.x])
@@ -46,19 +47,20 @@ render_buffer :: proc(buffer: ^Buffer, size: Vec2) {
 		tty.clear_line()
 	}
 
-	render_cursor(buffer, number_column_width)
+	render_cursor(b, number_column_width)
 }
 
 // Renders the cursor
-render_cursor :: proc(buffer: ^Buffer, num_col_w: int) {
-	tty.cursor_move(buffer.cursor.x + num_col_w + 1, buffer.cursor.y)
+render_cursor :: proc(b: ^buffer.Buffer, num_col_w: int) {
+	tty.cursor_move(b.cursor.x + num_col_w + 1, b.cursor.y)
 	tty.sgr_invert()
-	os.write_rune(os.stdout, buffer_get_char(buffer, buffer.cursor.x, buffer.cursor.y))
+	char := buffer.get_current_char(b)
+	os.write_rune(os.stdout, char)
 	tty.sgr_reset()
 }
 
 // Renders the status bar
-render_status_bar :: proc(editor: ^Editor, buffer: ^Buffer) {
+render_status_bar :: proc(editor: ^Editor, b: ^buffer.Buffer) {
 	status_y := editor.size.y - 1
 	tty.cursor_move(0, status_y)
 
@@ -84,23 +86,20 @@ render_status_bar :: proc(editor: ^Editor, buffer: ^Buffer) {
 	strings.write_string(&status_builder, mode_str)
 
 	// Filename
-	if len(buffer.filename) > 0 {
+	if len(b.filename) > 0 {
 		strings.write_string(&status_builder, " ")
-		strings.write_string(&status_builder, buffer.filename)
+		strings.write_string(&status_builder, b.filename)
 	} else {
 		strings.write_string(&status_builder, " [No Name]")
 	}
 
 	// Modified indicator
-	if buffer.modified {
+	if b.modified {
 		strings.write_string(&status_builder, " [+]")
 	}
 
 	// Cursor position
-	strings.write_string(
-		&status_builder,
-		fmt.tprintf(" %d:%d", buffer.cursor.y + 1, buffer.cursor.x + 1),
-	)
+	strings.write_string(&status_builder, fmt.tprintf(" %d:%d", b.cursor.y + 1, b.cursor.x + 1))
 
 	status := strings.to_string(status_builder)
 
