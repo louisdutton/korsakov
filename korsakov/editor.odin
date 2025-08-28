@@ -29,19 +29,6 @@ Editor :: struct {
 	command_buffer: string, // For command mode input
 }
 
-/// Creates a new headless editor instance for testing
-editor_new_headless :: proc() -> Editor {
-	return {
-		mode = .Navigate,
-		buffers = make([dynamic]buffer.Buffer),
-		active_buffer = 0,
-		size = vec2(80, 24),
-		commands = command_registry_new(),
-		running = true,
-		command_buffer = "",
-	}
-}
-
 /// Creates a new interactive editor instance
 editor_new :: proc() -> Editor {
 	editor := Editor {
@@ -92,13 +79,6 @@ editor_active_buffer :: proc(editor: ^Editor) -> ^buffer.Buffer {
 	return &editor.buffers[editor.active_buffer]
 }
 
-/// Evaluates input actions in headless mode
-editor_eval :: proc(editor: ^Editor, input_actions: string) {
-	// TODO: Parse and execute vim-style input actions
-	// For now, just print that we received the actions
-	fmt.printf("Headless mode: executing actions '%s'\n", input_actions)
-}
-
 /// Main event loop for interactive mode
 editor_listen :: proc(editor: ^Editor) {
 	original_state := tty.set_raw_mode()
@@ -110,6 +90,9 @@ editor_listen :: proc(editor: ^Editor) {
 		tty.alt_screen_disable()
 		tty.restore(&original_state)
 	}
+
+	render_editor(editor)
+	char: rune
 
 	for editor.running {
 		render_editor(editor)

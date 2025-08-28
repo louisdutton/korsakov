@@ -6,26 +6,18 @@ import "core:os"
 import "tty"
 
 main :: proc() {
-	log.info("starting program")
+	context.logger = create_logger()
+	defer destroy_logger()
+
 	args := tty.parse_args()
-	context.logger = log.create_console_logger(.Debug, {.Level, .Terminal_Color})
-	defer log.destroy_console_logger(context.logger)
 
-	if len(args.headless) > 0 {
-		log.debug("mode: headess")
-		editor := editor_new_headless()
-		defer editor_destroy(&editor)
+	log.debug("mode: interactive")
+	log.debug("hi there")
+	editor := editor_new()
+	defer editor_destroy(&editor)
 
-		init_buffer(args, &editor)
-		editor_eval(&editor, args.headless)
-	} else {
-		log.debug("mode: interactive")
-		editor := editor_new()
-		defer editor_destroy(&editor)
-
-		init_buffer(args, &editor)
-		editor_listen(&editor)
-	}
+	init_buffer(args, &editor)
+	editor_listen(&editor)
 }
 
 @(private = "file")
