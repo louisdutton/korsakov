@@ -4,6 +4,7 @@ import "buffer"
 import "core:fmt"
 import "core:os"
 import "core:strings"
+import "core:terminal/ansi"
 import "core:unicode/utf8"
 import "tty"
 
@@ -34,15 +35,14 @@ render_buffer :: proc(e: ^Editor, b: ^buffer.Buffer) {
 				tty.write(line[:size.x])
 			} else {
 				// line number
+				tty.write(ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR)
 				fmt.print(i)
 
 				// actual line
 				tty.cursor_move(number_column_width + 1, i)
+				tty.write(ansi.CSI + ansi.FG_WHITE + ansi.SGR)
 				fmt.print(line)
 			}
-		} else {
-			// Show tilde for empty lines (vim-style)
-			fmt.print("~")
 		}
 
 		tty.clear_line()
