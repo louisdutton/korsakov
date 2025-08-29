@@ -33,6 +33,7 @@
 
             buildInputs = [
               tree-sitter
+              tree-sitter-grammars.tree-sitter-c
             ];
 
             packages = [
@@ -41,6 +42,8 @@
               nixd
               alejandra
             ];
+
+            TS_GRAMMARS = "${tree-sitter-grammars.tree-sitter-c}";
           };
         }
     );
