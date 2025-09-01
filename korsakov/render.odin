@@ -10,106 +10,105 @@ import "tty"
 
 // Renders the editor to the terminal
 render_editor :: proc(e: ^Editor) {
-	b := editor_active_buffer(e)
+  b := editor_active_buffer(e)
 
-	render_buffer(e, b)
-	render_status_bar(e, b)
+  render_buffer(e, b)
+  render_status_bar(e, b)
 }
 
 // Renders the buffer content
 render_buffer :: proc(e: ^Editor, b: ^buffer.Buffer) {
-	size := e.size
-	STATUS_BAR_HEIGHT :: 2
-	visible_lines := size.y - STATUS_BAR_HEIGHT
+  size := e.size
+  STATUS_BAR_HEIGHT :: 2
+  visible_lines := size.y - STATUS_BAR_HEIGHT
 
-	number_column_width := len(b.lines) / 10
-	max_width := size.x - number_column_width
+  number_column_width := len(b.lines) / 10
+  max_width := size.x - number_column_width
 
-	for i in b.scroll ..< visible_lines {
-		tty.cursor_move(0, i)
+  for i in b.scroll ..< visible_lines {
+    tty.cursor_move(0, i)
 
-		if i < buffer.line_count(b) {
-			line := buffer.get_line(b, i)
-			// Truncate line if it's too long for the screen
-			if len(line) > size.x {
-				tty.write(line[:size.x])
-			} else {
-				// line number
-				tty.write(ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR)
-				fmt.print(i)
+    if i < buffer.line_count(b) {
+      line := buffer.get_line(b, i)
+      // Truncate line if it's too long for the screen
+      if len(line) > size.x {
+        tty.write(line[:size.x])
+      } else {
+        // line number
+        tty.write(ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR)
+        fmt.print(i)
 
-				// actual line
-				tty.cursor_move(number_column_width + 1, i)
-				tty.write(ansi.CSI + ansi.FG_WHITE + ansi.SGR)
-				fmt.print(line)
-			}
-		}
+        // actual line
+        tty.cursor_move(number_column_width + 1, i)
+        tty.write(ansi.CSI + ansi.FG_WHITE + ansi.SGR)
+        fmt.print(line)
+      }
+    }
 
-		tty.clear_line()
-	}
+    tty.clear_line()
+  }
 
-	render_cursor(b, number_column_width)
+  render_cursor(b, number_column_width)
 }
 
 // Renders the cursor
 render_cursor :: proc(b: ^buffer.Buffer, num_col_w: int) {
-	tty.cursor_move(b.cursor.x + num_col_w + 1, b.cursor.y)
-	tty.sgr_invert()
-	char := buffer.get_current_char(b)
-	os.write_rune(os.stdout, char)
-	tty.sgr_reset()
+  tty.cursor_move(b.cursor.x + num_col_w + 1, b.cursor.y)
+  tty.sgr_invert()
+  char := buffer.get_current_char(b)
+  os.write_rune(os.stdout, char)
+  tty.sgr_reset()
 }
 
 // Renders the status bar
 render_status_bar :: proc(editor: ^Editor, b: ^buffer.Buffer) {
-	status_y := editor.size.y - 1
-	tty.cursor_move(0, status_y)
+  status_y := editor.size.y - 1
+  tty.cursor_move(0, status_y)
 
-	// Set background color for status bar
-	tty.sgr_invert()
+  // Set background color for status bar
+  tty.sgr_invert()
 
-	// Build status string
-	status_builder := strings.builder_make()
-	defer strings.builder_destroy(&status_builder)
+  // Build status string
+  status_builder := strings.builder_make()
+  defer strings.builder_destroy(&status_builder)
 
-	// Mode indicator
-	mode_str := ""
-	switch editor.mode {
-	case .Navigate:
-		mode_str = " NAV "
-	case .Insert:
-		mode_str = " INS "
-	case .Visual:
-		mode_str = " VIS "
-	case .Command:
-		mode_str = " CMD "
-	}
-	strings.write_string(&status_builder, mode_str)
+  // Mode indicator
+  mode_str := ""
+  switch editor.mode {
+  case .Navigate: mode_str = " NAV "
+  case .Insert: mode_str = " INS "
+  case .Visual: mode_str = " VIS "
+  case .Command: mode_str = " CMD "
+  }
+  strings.write_string(&status_builder, mode_str)
 
-	// Filename
-	if len(b.filename) > 0 {
-		strings.write_string(&status_builder, " ")
-		strings.write_string(&status_builder, b.filename)
-	} else {
-		strings.write_string(&status_builder, " [No Name]")
-	}
+  // Filename
+  if len(b.filename) > 0 {
+    strings.write_string(&status_builder, " ")
+    strings.write_string(&status_builder, b.filename)
+  } else {
+    strings.write_string(&status_builder, " [No Name]")
+  }
 
-	// Modified indicator
-	if b.modified {
-		strings.write_string(&status_builder, " [+]")
-	}
+  // Modified indicator
+  if b.modified {
+    strings.write_string(&status_builder, " [+]")
+  }
 
-	// Cursor position
-	strings.write_string(&status_builder, fmt.tprintf(" %d:%d", b.cursor.y + 1, b.cursor.x + 1))
+  // Cursor position
+  strings.write_string(
+    &status_builder,
+    fmt.tprintf(" %d:%d", b.cursor.y + 1, b.cursor.x + 1),
+  )
 
-	status := strings.to_string(status_builder)
+  status := strings.to_string(status_builder)
 
-	// Print status and pad to full width
-	fmt.print(status)
-	padding := editor.size.x - len(status)
-	for i in 0 ..< padding {
-		tty.write(" ")
-	}
+  // Print status and pad to full width
+  fmt.print(status)
+  padding := editor.size.x - len(status)
+  for i in 0 ..< padding {
+    tty.write(" ")
+  }
 
-	tty.sgr_reset()
+  tty.sgr_reset()
 }
