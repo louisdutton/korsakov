@@ -26,25 +26,37 @@
     devShells = forEachSupportedSystem (
       {pkgs}:
         with pkgs; {
-          default = mkShell {
-            nativeBuildInputs = [
-              odin
-            ];
+          default = let
+            tree-sitter-odin = tree-sitter.buildGrammar rec {
+              language = "odin";
+              version = "1.3.0";
+              src = fetchFromGitHub {
+                owner = "tree-sitter-grammars";
+                repo = "tree-sitter-odin";
+                rev = "v${version}";
+                hash = "sha256-vlw5XaHTdsgO9H4y8z0u0faYzs+L3UZPhqhD/IJ6khY=";
+              };
+            };
+          in
+            mkShell {
+              nativeBuildInputs = [
+                odin
+              ];
 
-            buildInputs = [
-              tree-sitter
-              tree-sitter-grammars.tree-sitter-c
-            ];
+              buildInputs = [
+                tree-sitter
+                tree-sitter-odin
+              ];
 
-            packages = [
-              gdb
-              ols
-              nixd
-              alejandra
-            ];
+              packages = [
+                gdb
+                ols
+                nixd
+                alejandra
+              ];
 
-            TS_GRAMMARS = "${tree-sitter-grammars.tree-sitter-c}";
-          };
+              TS_GRAMMARS = "${tree-sitter-odin}";
+            };
         }
     );
   };

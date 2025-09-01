@@ -51,9 +51,9 @@ main :: proc() {
     ts.parser_set_odin_logger(parser, &logger, .Debug)
 
     // Load the language
-    lib, ok := ts.load_language("c")
+    lib, ok := ts.load_language("odin")
     if !ok {
-      log.error("Failed to load C language")
+      log.error("Failed to load language")
       return
     }
     defer ts.unload_langage(&lib)
