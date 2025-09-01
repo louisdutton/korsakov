@@ -1,14 +1,9 @@
 package main
 
 import ts ".."
-import "base:builtin"
-import "core:c"
-import "core:fmt"
 import "core:log"
-import "core:math/linalg/glsl"
 import "core:mem"
 import "core:os"
-import "core:strings"
 
 main :: proc() {
   logger := log.create_console_logger(
@@ -63,8 +58,6 @@ main :: proc() {
       return
     }
 
-    // FIXME: there seems to be a version mismatch things
-    // seem to work none the less
     set_lang_ok := ts.parser_set_language(parser, lib.language)
     log.assert(
       set_lang_ok,
