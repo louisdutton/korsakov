@@ -1,13 +1,11 @@
-package treesitter
-
-// This file adds helpers and convenience procedures.
+package cst
 
 import "base:runtime"
-
 import "core:fmt"
 import "core:log"
 import "core:mem"
 import "core:os"
+import ts "treesitter"
 
 @(private)
 alloc_context: runtime.Context
@@ -55,7 +53,7 @@ set_odin_allocator :: proc(allocator := context.allocator) {
 
   alloc_context = context
   alloc_context.allocator = allocator
-  set_allocator(odin_malloc, odin_calloc, odin_realloc, odin_free)
+  ts.set_allocator(odin_malloc, odin_calloc, odin_realloc, odin_free)
 }
 
 // An allocator that keeps track of allocation sizes and passes it along to resizes.
@@ -181,18 +179,18 @@ compat_allocator_proc :: proc(
 // all the log messages, this has huge overhead so you should probably only set this if you actually
 // have the log level of it.
 parser_set_odin_logger :: proc(
-  self: Parser,
+  self: ts.Parser,
   logger: ^runtime.Logger,
   $level: runtime.Logger_Level,
 ) {
   if logger == nil {
-    parser_set_logger(self, Logger{})
+    ts.parser_set_logger(self, ts.Logger{})
     return
   }
 
   tree_sitter_log :: proc "c" (
     payload: rawptr,
-    log_type: Log_Type,
+    log_type: ts.Log_Type,
     buffer: cstring,
   ) {
     context = runtime.default_context()
@@ -220,18 +218,21 @@ parser_set_odin_logger :: proc(
     }
   }
 
-  parser_set_logger(self, Logger{payload = logger, log = tree_sitter_log})
+  ts.parser_set_logger(
+    self,
+    ts.Logger{payload = logger, log = tree_sitter_log},
+  )
 }
 
-node_text :: proc(self: Node, source: string) -> string {
-  return source[node_start_byte(self):node_end_byte(self)]
+node_text :: proc(self: ts.Node, source: string) -> string {
+  return source[ts.node_start_byte(self):ts.node_end_byte(self)]
 }
 
 // Iterates over the predicates by subslicing them split by the .Done type.
 predicates_iter :: proc(
-  preds: ^[]Query_Predicate_Step,
+  preds: ^[]ts.Query_Predicate_Step,
 ) -> (
-  []Query_Predicate_Step,
+  []ts.Query_Predicate_Step,
   bool,
 ) {
   if len(preds) == 0 {
@@ -261,17 +262,17 @@ file_input :: proc(
   fi: ^File_Input,
   fh: os.Handle,
   buf: []byte,
-  encoding: Input_Encoding = .UTF8,
-) -> Input {
+  encoding: ts.Input_Encoding = .UTF8,
+) -> ts.Input {
   fi.fh = fh
   fi.buf = buf
   fi.ctx = context
-  return Input {
+  return ts.Input {
     payload = fi,
     read = proc "c" (
       payload: rawptr,
       off: u32,
-      _: Point,
+      _: ts.Point,
       read: ^u32,
     ) -> cstring {
       fi := (^File_Input)(payload)

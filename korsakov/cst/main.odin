@@ -1,9 +1,9 @@
-package main
+package cst
 
-import ts ".."
 import "core:log"
 import "core:mem"
 import "core:os"
+import ts "treesitter"
 
 main :: proc() {
   logger := log.create_console_logger(
@@ -12,46 +12,17 @@ main :: proc() {
   )
   context.logger = logger
 
-  track: mem.Tracking_Allocator
-  mem.tracking_allocator_init(&track, context.allocator)
-  defer mem.tracking_allocator_destroy(&track)
-  context.allocator = mem.tracking_allocator(&track)
-
-  la: log.Log_Allocator
-  log.log_allocator_init(&la, .Debug, .Human)
-  context.allocator = log.log_allocator(&la)
-
-  compat: ts.Compat_Allocator
-  ts.compat_allocator_init(&compat)
-
-  defer {
-    for _, leak in track.allocation_map {
-      log.errorf("%v leaked %m\n", leak.location, leak.size)
-    }
-    for bad_free in track.bad_free_array {
-      log.errorf(
-        "%v allocation %p was freed badly\n",
-        bad_free.location,
-        bad_free.memory,
-      )
-    }
-  }
-
   {
-    ts.set_odin_allocator(ts.compat_allocator(&compat))
-
     parser := ts.parser_new()
     defer ts.parser_delete(parser)
 
-    ts.parser_set_odin_logger(parser, &logger, .Debug)
-
     // Load the language
-    lib, ok := ts.load_language("odin")
+    lib, ok := load_language("odin")
     if !ok {
       log.error("Failed to load language")
       return
     }
-    defer ts.unload_langage(&lib)
+    defer unload_langage(&lib)
 
     if !ts.parser_set_language(parser, lib.language) {
       log.error("Failed to set language")
@@ -98,7 +69,7 @@ main :: proc() {
         }
         log.infof(
           "%q: %s",
-          ts.node_text(cap.node, source),
+          node_text(cap.node, source),
           query_capture_name_for_id(query, cap.index),
         )
       }

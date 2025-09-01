@@ -1,11 +1,11 @@
-package main
+package cst
 
 // This file contains tiny wrappers/replacements of the C API.
 
-import ts ".."
 import "core:os"
 import "core:strings"
 import "core:time"
+import ts "treesitter"
 
 // set the ranges of text that the parser should include when parsing.
 //
@@ -311,89 +311,3 @@ language_field_id_for_name :: #force_inline proc(
     u32(len(name)),
   )
 }
-
-// Create a language from a buffer of Wasm. The resulting language behaves
-// like any other Tree-sitter language, except that in order to use it with
-// a parser, that parser must have a Wasm store. Note that the language
-// can be used with any Wasm store, it doesn't need to be the same store that
-// was used to originally load it.
-wasm_store_load_language :: #force_inline proc(
-  self: ^ts.Wasm_Store,
-  name: cstring,
-  wasm: string,
-) -> (
-  lang: ts.Language,
-  err: ts.Wasm_Error,
-) {
-  lang = ts.wasm_store_load_language(
-    self,
-    name,
-    strings.unsafe_string_to_cstring(wasm),
-    u32(len(wasm)),
-    &err,
-  )
-  return
-}
-
-// when BIND_HIGHLIGHT {
-//
-// 	// Construct a `Highlighter` by providing a list of strings containing
-// 	// the HTML attributes that should be applied for each highlight value.
-// 	highlighter_new :: #force_inline proc(highlight_names: []cstring, attribute_strings: []cstring) -> ^Highlighter {
-// 		assert(len(highlight_names) == len(attribute_strings), "highlight_names must be the same length as attribute_strings")
-// 		return _highlighter_new(raw_data(highlight_names), raw_data(attribute_strings), u32(len(highlight_names)))
-// 	}
-//
-// 	// Add a `Language` to a highlighter. The language is associated with a
-// 	// scope name, which can be used later to select a language for syntax
-// 	// highlighting. Along with the language, you must provide a JSON string
-// 	// containing the compiled PropertySheet to use for syntax highlighting
-// 	// with that language. You can also optionally provide an 'injection regex',
-// 	// which is used to detect when this language has been embedded in a document
-// 	// written in a different language.
-// 	highlighter_add_language :: #force_inline proc(
-// 		self: ^Highlighter,
-// 		language: Language,
-// 		language_name: cstring,
-// 		scope_name: cstring,
-// 		highlight_query: string,
-// 		injection_regex: cstring = nil,
-// 		injection_query: string = "",
-// 		locals_query: string = "",
-// 		apply_all_captures: bool = true,
-// 	) -> Highlight_Error {
-// 		return _highlighter_add_language(
-// 			self,
-// 			language_name,
-// 			scope_name,
-// 			injection_regex,
-// 			language,
-// 			strings.unsafe_string_to_cstring(highlight_query),
-// 			strings.unsafe_string_to_cstring(injection_query),
-// 			strings.unsafe_string_to_cstring(locals_query),
-// 			u32(len(highlight_query)),
-// 			u32(len(injection_query)),
-// 			u32(len(locals_query)),
-// 			apply_all_captures,
-// 		)
-// 	}
-//
-// 	// Compute syntax highlighting for a given document. You must first
-// 	// create a `HighlightBuffer` to hold the output.
-// 	highlighter_highlight :: #force_inline proc(
-// 		self: ^Highlighter,
-// 		scope_name: cstring,
-// 		source_code: string,
-// 		output: ^Highlight_Buffer,
-// 		cancellation_flag: ^uint = nil,
-// 	) -> Highlight_Error {
-// 		return _highlighter_highlight(
-// 			self,
-// 			scope_name,
-// 			strings.unsafe_string_to_cstring(source_code),
-// 			u32(len(source_code)),
-// 			output,
-// 			cancellation_flag,
-// 		)
-// 	}
-// }

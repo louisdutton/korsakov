@@ -1,12 +1,16 @@
 package korsakov
 
 import "buffer"
+import "core:container/intrusive/list"
 import "core:log"
 import "core:os"
+import "cst"
+import ts "cst/treesitter"
 import "tty"
 
 main :: proc() {
-  context.logger = create_logger()
+  logger := create_logger()
+  context.logger = logger
   defer destroy_logger()
 
   when ODIN_DEBUG {
@@ -14,6 +18,16 @@ main :: proc() {
     mem.tracking_allocator_init(&track, context.allocator)
     defer mem.tracking_allocator_destroy(&track)
     context.allocator = mem.tracking_allocator(&track)
+
+    // nest a log allocator inside our existing tracking allocator
+    la: log.Log_Allocator
+    log.log_allocator_init(&la, .Debug, .Human)
+    context.allocator = log.log_allocator(&la)
+
+    // take control of tree-sitter allocations so we can track them
+    compat: cst.Compat_Allocator
+    cst.compat_allocator_init(&compat)
+    cst.set_odin_allocator(cst.compat_allocator(&compat))
 
     defer {
       for _, leak in track.allocation_map {
@@ -29,10 +43,16 @@ main :: proc() {
     }
   }
 
+  // this should probably be in the editor lifecyle
+  // but we need to pass the logger reference into that first
+  // ideally the init should extract the logger from context rather
+  // than explicitly passing
+  cst.init(&logger)
+  defer cst.fini()
+
   args := tty.parse_args()
 
   log.debug("mode: interactive")
-  log.debug("hi there")
   editor := editor_new()
   defer editor_destroy(&editor)
 

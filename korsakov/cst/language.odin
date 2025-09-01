@@ -1,4 +1,4 @@
-package treesitter
+package cst
 
 import "core:dynlib"
 import "core:fmt"
@@ -6,10 +6,11 @@ import "core:log"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
+import ts "treesitter"
 
 // Language loader structure
 Language_Library :: struct {
-  language:         Language,
+  language:         ts.Language,
   highlights:       string,
   optional_modules: [Optional_Module]Maybe(string),
   __handle:         dynlib.Library,
@@ -33,7 +34,7 @@ module_names :: [Optional_Module]string {
 
 // Function signature for tree-sitter language functions
 // All tree-sitter languages export a function like tree_sitter_c(), tree_sitter_python(), etc.
-Language_Loader :: proc() -> Language
+Language_Loader :: proc() -> ts.Language
 
 
 load_language :: proc(name: string) -> (lang: Language_Library, ok: bool) {
