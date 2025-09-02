@@ -12,7 +12,7 @@ Winsize :: struct {
   ws_ypixel: u16,
 }
 
-/// Gets terminal size
+// Gets terminal size
 get_terminal_size :: proc() -> [2]int {
   ws: Winsize
 

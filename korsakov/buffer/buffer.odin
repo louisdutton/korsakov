@@ -10,7 +10,7 @@ Buffer :: struct {
   scroll:   int,
 }
 
-/// Creates a new empty buffer
+// Creates a new empty buffer
 new :: proc() -> Buffer {
   buffer := Buffer {
     lines    = make([dynamic]string), // must have at least one empty line
@@ -25,7 +25,7 @@ new :: proc() -> Buffer {
   return buffer
 }
 
-/// Destroys a buffer and cleans up resources
+// Destroys a buffer and cleans up resources
 destroy :: proc(b: ^Buffer) {
   for line in b.lines {
     delete(line)
@@ -33,7 +33,7 @@ destroy :: proc(b: ^Buffer) {
   delete(b.lines)
 }
 
-/// Gets the number of lines in the buffer
+// Gets the number of lines in the buffer
 line_count :: proc(b: ^Buffer) -> int {
   return len(b.lines)
 }

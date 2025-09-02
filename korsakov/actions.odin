@@ -31,7 +31,7 @@ ActionData :: struct {
   char_data: rune, // For InsertChar action
 }
 
-/// Executes an action on the editor
+// Executes an action on the editor
 execute_action :: proc(e: ^Editor, action_data: ActionData) {
   b := editor_active_buffer(e)
 

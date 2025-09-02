@@ -4,7 +4,7 @@ import "core:strings"
 import "core:unicode/utf8"
 
 
-/// Gets a line from the buffer
+// Gets a line from the buffer
 get_line :: proc(b: ^Buffer, y: int) -> string {
   assert(y >= 0 && y < len(b.lines))
   return b.lines[y]
@@ -29,7 +29,7 @@ get_current_char :: proc(b: ^Buffer) -> rune {
   return get_char(b, b.cursor)
 }
 
-/// Sets a line in the buffer
+// Sets a line in the buffer
 set_line :: proc(b: ^Buffer, line_idx: int, content: string) {
   if line_idx >= 0 && line_idx < len(b.lines) {
     delete(b.lines[line_idx])
@@ -38,7 +38,7 @@ set_line :: proc(b: ^Buffer, line_idx: int, content: string) {
   }
 }
 
-/// Inserts a character at the cursor position
+// Inserts a character at the cursor position
 insert_char :: proc(b: ^Buffer, ch: rune) {
   if b.cursor.y >= 0 && b.cursor.y < len(b.lines) {
     line := b.lines[b.cursor.y]
@@ -70,7 +70,7 @@ insert_char :: proc(b: ^Buffer, ch: rune) {
   }
 }
 
-/// Deletes a character at the cursor position
+// Deletes a character at the cursor position
 delete_char :: proc(b: ^Buffer) {
   if b.cursor.y >= 0 && b.cursor.y < len(b.lines) {
     line := b.lines[b.cursor.y]

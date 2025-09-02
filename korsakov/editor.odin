@@ -29,7 +29,7 @@ Editor :: struct {
   command_buffer: string, // For command mode input
 }
 
-/// Creates a new interactive editor instance
+// Creates a new interactive editor instance
 editor_new :: proc() -> Editor {
   editor := Editor {
     mode           = .Navigate,
@@ -46,7 +46,7 @@ editor_new :: proc() -> Editor {
   return editor
 }
 
-/// Destroys the editor and cleans up resources
+// Destroys the editor and cleans up resources
 editor_destroy :: proc(editor: ^Editor) {
   for &buf in editor.buffers {
     buffer.destroy(&buf)
@@ -55,7 +55,7 @@ editor_destroy :: proc(editor: ^Editor) {
   command_registry_destroy(&editor.commands)
 }
 
-/// Loads a file into the editor
+// Loads a file into the editor
 editor_load_file :: proc(editor: ^Editor, filename: string) -> os.Error {
   buffer := buffer.read(filename) or_return
   append(&editor.buffers, buffer)
@@ -66,7 +66,7 @@ editor_load_file :: proc(editor: ^Editor, filename: string) -> os.Error {
   return os.ERROR_NONE
 }
 
-/// Adds a buffer to the editor
+// Adds a buffer to the editor
 editor_add_buffer :: proc(e: ^Editor, b: buffer.Buffer) {
   append(&e.buffers, b)
   if len(e.buffers) == 1 {
@@ -74,12 +74,12 @@ editor_add_buffer :: proc(e: ^Editor, b: buffer.Buffer) {
   }
 }
 
-/// Gets the currently active buffer
+// Gets the currently active buffer
 editor_active_buffer :: proc(e: ^Editor) -> ^buffer.Buffer {
   return &e.buffers[e.active_buffer]
 }
 
-/// Main event loop for interactive mode
+// Main event loop for interactive mode
 editor_listen :: proc(e: ^Editor) {
   original_state := tty.set_raw_mode()
   tty.cursor_hide()

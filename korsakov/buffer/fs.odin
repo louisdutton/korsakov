@@ -3,7 +3,7 @@ package buffer
 import "core:os"
 import "core:strings"
 
-/// Creates a buffer from a file
+// Creates a buffer from a file
 read :: proc(filename: string) -> (Buffer, os.Error) {
   data, ok := os.read_entire_file(filename)
   if !ok {
@@ -33,7 +33,7 @@ read :: proc(filename: string) -> (Buffer, os.Error) {
   return buffer, os.ERROR_NONE
 }
 
-/// Saves the buffer to its file
+// Saves the buffer to its file
 write :: proc(buffer: ^Buffer) -> os.Errno {
   if len(buffer.filename) == 0 {
     return os.EINVAL

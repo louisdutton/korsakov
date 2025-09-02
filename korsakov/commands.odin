@@ -14,7 +14,7 @@ CommandRegistry :: struct {
   commands: [dynamic]Command,
 }
 
-/// Creates a new command registry with default commands
+// Creates a new command registry with default commands
 command_registry_new :: proc() -> CommandRegistry {
   registry := CommandRegistry {
     commands = make([dynamic]Command),
@@ -31,7 +31,7 @@ command_registry_new :: proc() -> CommandRegistry {
   return registry
 }
 
-/// Destroys a command registry
+// Destroys a command registry
 command_registry_destroy :: proc(registry: ^CommandRegistry) {
   for command in registry.commands {
     delete(command.name)
@@ -39,7 +39,7 @@ command_registry_destroy :: proc(registry: ^CommandRegistry) {
   delete(registry.commands)
 }
 
-/// Registers a command in the registry
+// Registers a command in the registry
 command_register :: proc(
   registry: ^CommandRegistry,
   name: string,
@@ -52,7 +52,7 @@ command_register :: proc(
   append(&registry.commands, command)
 }
 
-/// Executes a command by name
+// Executes a command by name
 command_execute :: proc(
   registry: ^CommandRegistry,
   editor: ^Editor,
@@ -87,7 +87,7 @@ command_execute :: proc(
 
 // Default command implementations
 
-/// Write command - saves the current buffer
+// Write command - saves the current buffer
 command_write :: proc(editor: ^Editor, args: []string) {
   if b := editor_active_buffer(editor); b != nil {
     if err := buffer.write(b); err != 0 {
@@ -98,7 +98,7 @@ command_write :: proc(editor: ^Editor, args: []string) {
   }
 }
 
-/// Quit command - exits the editor
+// Quit command - exits the editor
 command_quit :: proc(editor: ^Editor, args: []string) {
   // Check if any buffers are modified
   has_unsaved := false
@@ -116,7 +116,7 @@ command_quit :: proc(editor: ^Editor, args: []string) {
   }
 }
 
-/// Write and quit command - saves then exits
+// Write and quit command - saves then exits
 command_write_quit :: proc(editor: ^Editor, args: []string) {
   if b := editor_active_buffer(editor); b != nil {
     if err := buffer.write(b); err != 0 {

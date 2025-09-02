@@ -8,7 +8,7 @@ Args :: struct {
   headless: string,
 }
 
-/// Parses command line arguments
+// Parses command line arguments
 parse_args :: proc() -> Args {
   args := Args{}
 
