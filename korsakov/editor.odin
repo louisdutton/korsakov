@@ -85,6 +85,11 @@ editor_listen :: proc(e: ^Editor) {
   tty.cursor_hide()
   tty.alt_screen_enable()
 
+  // update viewport (doesn't really work right now)
+  e.size = tty.get_terminal_size()
+  b := editor_active_buffer(e)
+  b.dimensions = {e.size.x, e.size.y - STATUS_BAR_HEIGHT}
+
   defer {
     tty.cursor_show()
     tty.alt_screen_disable()

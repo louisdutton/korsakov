@@ -8,39 +8,40 @@ import "core:terminal/ansi"
 import "core:unicode/utf8"
 import "tty"
 
+STATUS_BAR_HEIGHT :: 2
+
 // Renders the editor to the terminal
 render_editor :: proc(e: ^Editor) {
   b := editor_active_buffer(e)
 
-  render_buffer(e, b)
+  render_buffer(b)
   render_status_bar(e, b)
 }
 
 // Renders the buffer content
-render_buffer :: proc(e: ^Editor, b: ^buffer.Buffer) {
-  size := e.size
-  STATUS_BAR_HEIGHT :: 2
-  visible_lines := size.y - STATUS_BAR_HEIGHT
-
+render_buffer :: proc(b: ^buffer.Buffer) {
   number_column_width := len(b.lines) / 10
-  max_width := size.x - number_column_width
+  max_width := b.dimensions.x - number_column_width
 
-  for i in b.scroll ..< visible_lines {
+  for i in 0 ..< b.dimensions.y {
     tty.cursor_move(0, i)
 
     if i < buffer.line_count(b) {
-      line := buffer.get_line(b, i)
-      // Truncate line if it's too long for the screen
-      if len(line) > size.x {
-        tty.write(line[:size.x])
-      } else {
-        // line number
-        tty.write(ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR)
-        fmt.print(i)
+      // project lines based on viewport scroll offset
+      line_idx := min(i + b.scroll, len(b.lines) - 1)
+      line := buffer.get_line(b, line_idx)
 
-        // actual line
-        tty.cursor_move(number_column_width + 1, i)
-        tty.write(ansi.CSI + ansi.FG_WHITE + ansi.SGR)
+      // line number
+      tty.write(ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR)
+      fmt.print(i)
+
+      tty.cursor_move(number_column_width + 1, i)
+      tty.write(ansi.CSI + ansi.FG_WHITE + ansi.SGR)
+
+      // Truncate line if it's too long for the screen
+      if len(line) > max_width {
+        tty.write(line[:max_width])
+      } else {
         fmt.print(line)
       }
     }
@@ -53,7 +54,7 @@ render_buffer :: proc(e: ^Editor, b: ^buffer.Buffer) {
 
 // Renders the cursor
 render_cursor :: proc(b: ^buffer.Buffer, num_col_w: int) {
-  tty.cursor_move(b.cursor.x + num_col_w + 1, b.cursor.y)
+  tty.cursor_move(b.cursor.x + num_col_w + 1, b.cursor.y - b.scroll)
   tty.sgr_invert()
   char := buffer.get_current_char(b)
   os.write_rune(os.stdout, char)
@@ -100,6 +101,9 @@ render_status_bar :: proc(editor: ^Editor, b: ^buffer.Buffer) {
     &status_builder,
     fmt.tprintf(" %d:%d", b.cursor.y + 1, b.cursor.x + 1),
   )
+
+  // scroll
+  strings.write_string(&status_builder, fmt.tprintf(" scroll: %d", b.scroll))
 
   status := strings.to_string(status_builder)
 

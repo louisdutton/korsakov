@@ -3,12 +3,15 @@ package buffer
 Vec2 :: [2]int
 
 Buffer :: struct {
-  lines:    [dynamic]string,
-  filename: string,
-  filetype: string,
-  cursor:   Vec2,
-  modified: bool,
-  scroll:   int,
+  lines:      [dynamic]string,
+  filename:   string,
+  filetype:   string,
+  cursor:     Vec2,
+  modified:   bool,
+
+  // viewport (this can potentially be it's own distinct entity)
+  dimensions: Vec2,
+  scroll:     int,
 }
 
 // Creates a new empty buffer
