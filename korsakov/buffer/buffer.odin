@@ -5,6 +5,7 @@ Vec2 :: [2]int
 Buffer :: struct {
   lines:    [dynamic]string,
   filename: string,
+  filetype: string,
   cursor:   Vec2,
   modified: bool,
   scroll:   int,

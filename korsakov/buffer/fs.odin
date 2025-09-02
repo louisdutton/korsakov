@@ -1,7 +1,19 @@
 package buffer
 
 import "core:os"
+import "core:path/filepath"
 import "core:strings"
+
+// TODO: make this a user-configurable struct that allows a many-to-one
+// relationship between extentions and filetype
+get_filetype :: proc(path: string) -> (filetype: string, ok: bool) {
+  switch filepath.ext(path) {
+  case ".odin":
+    return "odin", true
+  case:
+    return "", false
+  }
+}
 
 // Creates a buffer from a file
 read :: proc(filename: string) -> (Buffer, os.Error) {
@@ -20,6 +32,7 @@ read :: proc(filename: string) -> (Buffer, os.Error) {
     cursor   = {0, 0},
     modified = false,
   }
+
 
   for line in lines {
     append(&buffer.lines, strings.clone(line))
