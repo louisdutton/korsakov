@@ -2,7 +2,9 @@ package korsakov
 
 import "buffer"
 import "core:container/intrusive/list"
+import "core:fmt"
 import "core:log"
+import "core:mem"
 import "core:os"
 import "cst"
 import ts "cst/treesitter"
@@ -31,10 +33,10 @@ main :: proc() {
 
     defer {
       for _, leak in track.allocation_map {
-        log.errorf("%v leaked %m\n", leak.location, leak.size)
+        fmt.eprintf("%v leaked %m\n", leak.location, leak.size)
       }
       for bad_free in track.bad_free_array {
-        log.errorf(
+        fmt.eprintf(
           "%v allocation %p was freed badly\n",
           bad_free.location,
           bad_free.memory,
