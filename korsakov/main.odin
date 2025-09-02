@@ -54,7 +54,7 @@ main :: proc() {
 
   args := tty.parse_args()
 
-  log.debug("mode: interactive")
+  log.debug(args)
   editor := editor_new()
   defer editor_destroy(&editor)
 
