@@ -1,9 +1,12 @@
 package korsakov
 
 import "buffer"
+import "core:log"
 import "tty"
 
-ESC :: 27
+Key :: enum {
+  ESC = 27,
+}
 
 handle_input :: proc(e: ^Editor, ch: rune) {
   switch e.mode {
@@ -43,29 +46,30 @@ handle_nav_input :: proc(e: ^Editor, ch: rune) {
 
 set_mode :: proc(e: ^Editor, mode: Mode) {
   e.mode = mode
+  log.debug("mode:", mode)
   // potentially do some stuff here in future
 }
 
 @(private = "file")
 handle_insert_input :: proc(e: ^Editor, ch: rune) {
-  switch ch {
-  case ESC:
+  switch Key(ch) {
+  case .ESC:
     set_mode(e, .Navigate)
   }
 }
 
 @(private = "file")
 handle_visual_input :: proc(e: ^Editor, ch: rune) {
-  switch ch {
-  case ESC:
+  switch Key(ch) {
+  case .ESC:
     set_mode(e, .Navigate)
   }
 }
 
 @(private = "file")
 handle_command_input :: proc(e: ^Editor, ch: rune) {
-  switch ch {
-  case ESC:
+  switch Key(ch) {
+  case .ESC:
     set_mode(e, .Navigate)
   }
 }

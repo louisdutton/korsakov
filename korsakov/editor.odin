@@ -97,6 +97,5 @@ editor_listen :: proc(e: ^Editor) {
   for e.running {
     render_editor(e)
     handle_input(e, tty.read())
-
   }
 }
