@@ -11,7 +11,7 @@ Buffer :: struct {
 
   // viewport (this can potentially be it's own distinct entity)
   dimensions: Vec2,
-  scroll:     int,
+  scroll:     Vec2,
 }
 
 // Creates a new empty buffer

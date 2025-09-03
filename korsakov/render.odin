@@ -28,7 +28,7 @@ render_buffer :: proc(b: ^buffer.Buffer) {
 
     if i < buffer.line_count(b) {
       // project lines based on viewport scroll offset
-      line_idx := min(i + b.scroll, len(b.lines) - 1)
+      line_idx := min(i + b.scroll.y, len(b.lines) - 1)
       line := buffer.get_line(b, line_idx)
 
       // line number
@@ -54,7 +54,7 @@ render_buffer :: proc(b: ^buffer.Buffer) {
 
 // Renders the cursor
 render_cursor :: proc(b: ^buffer.Buffer, num_col_w: int) {
-  tty.cursor_move(b.cursor.x + num_col_w + 1, b.cursor.y - b.scroll)
+  tty.cursor_move(b.cursor.x + num_col_w + 1, b.cursor.y - b.scroll.y)
   tty.sgr_invert()
   char := buffer.get_current_char(b)
   os.write_rune(os.stdout, char)
@@ -99,11 +99,14 @@ render_status_bar :: proc(editor: ^Editor, b: ^buffer.Buffer) {
   // Cursor position
   strings.write_string(
     &status_builder,
-    fmt.tprintf(" %d:%d", b.cursor.y + 1, b.cursor.x + 1),
+    fmt.tprintf(" pos=%d:%d", b.cursor.y + 1, b.cursor.x + 1),
   )
 
   // scroll
-  strings.write_string(&status_builder, fmt.tprintf(" scroll: %d", b.scroll))
+  strings.write_string(
+    &status_builder,
+    fmt.tprintf(" scr=%d:%d", b.scroll.y, b.scroll.x),
+  )
 
   status := strings.to_string(status_builder)
 

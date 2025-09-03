@@ -114,8 +114,8 @@ cursor_up :: proc(b: ^Buffer, n := 1) {
   b.cursor.y = max(b.cursor.y - n, 0)
   clamp_cursor_x(b)
 
-  if b.cursor.y <= b.scroll + SCROLL_PADDING {
-    b.scroll = max(b.scroll - 1, 0)
+  if b.cursor.y <= b.scroll.y + SCROLL_PADDING {
+    b.scroll.y = max(b.scroll.y - 1, 0)
   }
 }
 
@@ -125,19 +125,23 @@ cursor_down :: proc(b: ^Buffer, n := 1) {
   clamp_cursor_x(b)
 
   if b.cursor.y >= b.dimensions.y - SCROLL_PADDING {
-    b.scroll = min(b.scroll + 1, len(b.lines) - b.dimensions.y)
+    b.scroll.y = min(b.scroll.y + 1, len(b.lines) - b.dimensions.y)
   }
 }
 
 // moves the cursor left N characters
 cursor_left :: proc(b: ^Buffer, n := 1) {
   b.cursor.x = max(b.cursor.x - n, 0)
+
+  // TODO: horizontal scroll
 }
 
 // moves the cursor right N characters
 cursor_right :: proc(b: ^Buffer, n := 1) {
   b.cursor.x = b.cursor.x + n
   clamp_cursor_x(b)
+
+  // TODO: horizontal scroll
 }
 
 @(private)
