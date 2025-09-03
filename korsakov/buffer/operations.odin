@@ -114,7 +114,7 @@ cursor_up :: proc(b: ^Buffer, n := 1) {
   b.cursor.y = max(b.cursor.y - n, 0)
   clamp_cursor_x(b)
 
-  if b.cursor.y <= SCROLL_PADDING {
+  if b.cursor.y <= b.scroll + SCROLL_PADDING {
     b.scroll = max(b.scroll - 1, 0)
   }
 }
