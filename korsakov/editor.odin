@@ -89,6 +89,7 @@ editor_listen :: proc(e: ^Editor) {
   e.size = tty.get_terminal_size()
   b := editor_active_buffer(e)
   b.dimensions = {e.size.x, e.size.y - STATUS_BAR_HEIGHT}
+  b.x_offset = count_digits(len(b.lines)) + NUMBER_COLUMN_PADDING
 
   defer {
     tty.cursor_show()
@@ -103,4 +104,15 @@ editor_listen :: proc(e: ^Editor) {
     render_editor(e)
     handle_input(e, tty.read())
   }
+}
+
+// Returns the number of digits in a decimal integer
+count_digits :: proc(v: int) -> int {
+  curr := v
+  count := 0
+  for curr > 0 {
+    curr /= 10
+    count += 1
+  }
+  return count
 }

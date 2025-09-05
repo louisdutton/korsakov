@@ -8,7 +8,8 @@ import "core:terminal/ansi"
 import "core:unicode/utf8"
 import "tty"
 
-STATUS_BAR_HEIGHT :: 2
+STATUS_BAR_HEIGHT :: 1
+NUMBER_COLUMN_PADDING :: 1
 
 // Renders the editor to the terminal
 render_editor :: proc(e: ^Editor) {
@@ -20,9 +21,6 @@ render_editor :: proc(e: ^Editor) {
 
 // Renders the buffer content
 render_buffer :: proc(b: ^buffer.Buffer) {
-  number_column_width := len(b.lines) / 10
-  max_width := b.dimensions.x - number_column_width
-
   for i in 0 ..< b.dimensions.y {
     tty.cursor_move(0, i)
 
@@ -33,28 +31,28 @@ render_buffer :: proc(b: ^buffer.Buffer) {
 
       // line number
       tty.write(ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR)
-      fmt.print(i)
+      fmt.print(i + b.scroll.y)
 
-      tty.cursor_move(number_column_width + 1, i)
+      tty.cursor_move(b.x_offset, i)
       tty.write(ansi.CSI + ansi.FG_WHITE + ansi.SGR)
 
-      // Truncate line if it's too long for the screen
-      if len(line) > max_width {
-        tty.write(line[:max_width])
-      } else {
-        fmt.print(line)
-      }
+      // horizontal scrolling
+      width := b.dimensions.x - b.x_offset + 1
+      line_length := len(line)
+      start := min(b.scroll.x, line_length)
+      end := min(width + b.scroll.x, line_length)
+      tty.write(line[start:end])
     }
 
     tty.clear_line()
   }
 
-  render_cursor(b, number_column_width)
+  render_cursor(b)
 }
 
 // Renders the cursor
-render_cursor :: proc(b: ^buffer.Buffer, num_col_w: int) {
-  tty.cursor_move(b.cursor.x + num_col_w + 1, b.cursor.y - b.scroll.y)
+render_cursor :: proc(b: ^buffer.Buffer) {
+  tty.cursor_move(b.cursor.x + b.x_offset, b.cursor.y - b.scroll.y)
   tty.sgr_invert()
   char := buffer.get_current_char(b)
   os.write_rune(os.stdout, char)
@@ -99,7 +97,7 @@ render_status_bar :: proc(editor: ^Editor, b: ^buffer.Buffer) {
   // Cursor position
   strings.write_string(
     &status_builder,
-    fmt.tprintf(" pos=%d:%d", b.cursor.y + 1, b.cursor.x + 1),
+    fmt.tprintf(" pos=%d:%d", b.cursor.y, b.cursor.x),
   )
 
   // scroll

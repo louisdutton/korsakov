@@ -9,6 +9,9 @@ Buffer :: struct {
   cursor:     Vec2,
   modified:   bool,
 
+  // sign/number column
+  x_offset:   int,
+
   // viewport (this can potentially be it's own distinct entity)
   dimensions: Vec2,
   scroll:     Vec2,
