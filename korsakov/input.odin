@@ -2,45 +2,61 @@ package korsakov
 
 import "buffer"
 import "core:log"
+import "core:unicode/utf8"
 import "tty"
 
-Key :: enum {
+Action :: proc(e: ^Editor)
+Action_Map :: map[string]Action
+
+Key :: enum rune {
   ESC = 27,
 }
 
+// input_buffer: [8]u8 // TODO
+keymaps: [Mode]Action_Map
+
 handle_input :: proc(e: ^Editor, ch: rune) {
-  switch e.mode {
-  case .Navigate:
-    handle_nav_input(e, ch)
-  case .Insert:
-    handle_insert_input(e, ch)
-  case .Visual:
-    handle_visual_input(e, ch)
-  case .Command:
-    handle_command_input(e, ch)
+  if Key(ch) == .ESC && e.mode != .Navigate {
+    e.mode = .Navigate
+  } else {
+    exec(e, &keymaps[e.mode], ch)
   }
 }
 
-@(private = "file")
-handle_nav_input :: proc(e: ^Editor, ch: rune) {
-  b := editor_active_buffer(e)
+exec :: proc(e: ^Editor, m: ^map[string]Action, ch: rune) {
+  key := utf8.runes_to_string({ch})
+  defer delete(key)
+  if fn := m[key]; fn != nil {
+    fn(e)
+  }
+}
 
-  switch ch {
-  case 'q': e.running = false
-  case 'j':
-    buffer.cursor_down(b)
-  case 'k':
-    buffer.cursor_up(b)
-  case 'h':
-    buffer.cursor_left(b)
-  case 'l':
-    buffer.cursor_right(b)
-  case 'i':
-    set_mode(e, .Insert)
-  case 'v':
-    set_mode(e, .Visual)
-  case ';':
-    set_mode(e, .Command)
+@(init)
+input_init :: proc() {
+  nmap := &keymaps[.Navigate]
+  imap := &keymaps[.Insert]
+  vmap := &keymaps[.Visual]
+  cmap := &keymaps[.Command]
+
+  // buffer navigation
+  nmap["j"] = proc(e: ^Editor) {buffer.cursor_down(editor_active_buffer(e))}
+  nmap["k"] = proc(e: ^Editor) {buffer.cursor_up(editor_active_buffer(e))}
+  nmap["h"] = proc(e: ^Editor) {buffer.cursor_left(editor_active_buffer(e))}
+  nmap["l"] = proc(e: ^Editor) {buffer.cursor_right(editor_active_buffer(e))}
+
+  // mode controls
+  nmap["i"] = proc(e: ^Editor) {set_mode(e, .Insert)}
+  nmap["v"] = proc(e: ^Editor) {set_mode(e, .Visual)}
+  nmap[";"] = proc(e: ^Editor) {set_mode(e, .Command)}
+
+  // this should need to be submitted
+  cmap["q"] = proc(e: ^Editor) {e.running = false}
+}
+
+@(fini)
+init_fini :: proc() {
+  for kmap in keymaps {
+    delete(kmap)
   }
 }
 
@@ -48,28 +64,4 @@ set_mode :: proc(e: ^Editor, mode: Mode) {
   e.mode = mode
   log.debug("mode:", mode)
   // potentially do some stuff here in future
-}
-
-@(private = "file")
-handle_insert_input :: proc(e: ^Editor, ch: rune) {
-  switch Key(ch) {
-  case .ESC:
-    set_mode(e, .Navigate)
-  }
-}
-
-@(private = "file")
-handle_visual_input :: proc(e: ^Editor, ch: rune) {
-  switch Key(ch) {
-  case .ESC:
-    set_mode(e, .Navigate)
-  }
-}
-
-@(private = "file")
-handle_command_input :: proc(e: ^Editor, ch: rune) {
-  switch Key(ch) {
-  case .ESC:
-    set_mode(e, .Navigate)
-  }
 }

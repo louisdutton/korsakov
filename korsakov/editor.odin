@@ -75,7 +75,7 @@ editor_add_buffer :: proc(e: ^Editor, b: buffer.Buffer) {
 }
 
 // Gets the currently active buffer
-editor_active_buffer :: proc(e: ^Editor) -> ^buffer.Buffer {
+editor_active_buffer :: #force_inline proc(e: ^Editor) -> ^buffer.Buffer {
   return &e.buffers[e.active_buffer]
 }
 
