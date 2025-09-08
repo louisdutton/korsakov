@@ -21,7 +21,17 @@ render_buffer :: proc(b: ^buffer.Buffer) {
 
       // line number
       tty.write(ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR)
-      fmt.print(i + b.scroll.y)
+      number := i + b.scroll.y
+      // pad zeros to prevent tearing
+      // FIXME: this is very slow way of doing this
+      for i in 0 ..< count_digits(len(b.lines)) - count_digits(number) {
+        tty.write("0")
+      }
+      // we only need this if why the above padding method is in place
+      // otherwise we end up with an extra zero
+      if number > 0 {
+        fmt.print(number)
+      }
 
       tty.cursor_move(b.x_offset, i)
       tty.write(ansi.CSI + ansi.FG_WHITE + ansi.SGR)
