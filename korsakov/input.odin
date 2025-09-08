@@ -43,6 +43,10 @@ input_init :: proc() {
   nmap["k"] = proc(e: ^Editor) {buffer.cursor_up(editor_active_buffer(e))}
   nmap["h"] = proc(e: ^Editor) {buffer.cursor_left(editor_active_buffer(e))}
   nmap["l"] = proc(e: ^Editor) {buffer.cursor_right(editor_active_buffer(e))}
+  nmap["J"] = proc(e: ^Editor) {buffer.cursor_ymax(editor_active_buffer(e))}
+  nmap["K"] = proc(e: ^Editor) {buffer.cursor_ymin(editor_active_buffer(e))}
+  nmap["H"] = proc(e: ^Editor) {buffer.cursor_xmin(editor_active_buffer(e))}
+  nmap["L"] = proc(e: ^Editor) {buffer.cursor_xmax(editor_active_buffer(e))}
 
   // mode controls
   nmap["i"] = proc(e: ^Editor) {set_mode(e, .Insert)}
