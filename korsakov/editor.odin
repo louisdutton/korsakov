@@ -85,11 +85,8 @@ editor_listen :: proc(e: ^Editor) {
   tty.cursor_hide()
   tty.alt_screen_enable()
 
-  // update viewport (doesn't really work right now)
-  e.size = tty.get_terminal_size()
-  b := editor_active_buffer(e)
-  b.dimensions = {e.size.x, e.size.y - STATUS_BAR_HEIGHT}
-  b.x_offset = count_digits(len(b.lines)) + NUMBER_COLUMN_PADDING
+  // set the initial viewport dimensions 
+  resize_viewport(e)
 
   defer {
     tty.cursor_show()
@@ -101,9 +98,20 @@ editor_listen :: proc(e: ^Editor) {
   char: rune
 
   for e.running {
+    // TODO: should respond to resize events rather
+    // than running this per-frame
+    resize_viewport(e)
+
     render_editor(e)
     handle_input(e, tty.read())
   }
+}
+
+resize_viewport :: proc(e: ^Editor) {
+  e.size = tty.get_terminal_size()
+  b := editor_active_buffer(e)
+  b.dimensions = {e.size.x, e.size.y - STATUS_BAR_HEIGHT}
+  b.x_offset = count_digits(len(b.lines)) + NUMBER_COLUMN_PADDING
 }
 
 // Returns the number of digits in a decimal integer
