@@ -104,3 +104,32 @@ delete_char :: proc(b: ^Buffer) {
     }
   }
 }
+
+// Inserts a new line below the current line and positions cursor at the start
+insert_line_below :: proc(b: ^Buffer) {
+  if b.cursor.y >= 0 && b.cursor.y < len(b.lines) {
+    new_line_idx := b.cursor.y + 1
+    inject_at(&b.lines, new_line_idx, "")
+    b.cursor.y = new_line_idx
+    b.cursor.x = 0
+    b.modified = true
+  }
+}
+
+// Inserts a new line above the current line and positions cursor at the start
+insert_line_above :: proc(b: ^Buffer) {
+  if b.cursor.y >= 0 && b.cursor.y < len(b.lines) {
+    inject_at(&b.lines, b.cursor.y, "")
+    // cursor.y stays the same since we inserted above
+    b.cursor.x = 0
+    b.modified = true
+  }
+}
+
+// Positions cursor at the end of the current line
+cursor_to_line_end :: proc(b: ^Buffer) {
+  if b.cursor.y >= 0 && b.cursor.y < len(b.lines) {
+    line := b.lines[b.cursor.y]
+    b.cursor.x = len(line)
+  }
+}

@@ -67,8 +67,30 @@ input_init :: proc() {
   nmap["H"] = proc(e: ^Editor) {buffer.cursor_xmin(editor_active_buffer(e))}
   nmap["L"] = proc(e: ^Editor) {buffer.cursor_xmax(editor_active_buffer(e))}
 
-  // mode controls
+  // mode controls - insert mode variants
   nmap["i"] = proc(e: ^Editor) {set_mode(e, .Insert)}
+  nmap["a"] = proc(e: ^Editor) {
+    buffer.cursor_right(editor_active_buffer(e))
+    set_mode(e, .Insert)
+  }
+  nmap["A"] = proc(e: ^Editor) {
+    buffer.cursor_to_line_end(editor_active_buffer(e))
+    set_mode(e, .Insert)
+  }
+  nmap["I"] = proc(e: ^Editor) {
+    buffer.cursor_xmin(editor_active_buffer(e))
+    set_mode(e, .Insert)
+  }
+  nmap["o"] = proc(e: ^Editor) {
+    buffer.insert_line_below(editor_active_buffer(e))
+    set_mode(e, .Insert)
+  }
+  nmap["O"] = proc(e: ^Editor) {
+    buffer.insert_line_above(editor_active_buffer(e))
+    set_mode(e, .Insert)
+  }
+  
+  // other modes
   nmap["v"] = proc(e: ^Editor) {set_mode(e, .Visual)}
   nmap[";"] = proc(e: ^Editor) {set_mode(e, .Command)}
   
