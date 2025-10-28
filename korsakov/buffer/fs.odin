@@ -27,10 +27,12 @@ read :: proc(filename: string) -> (Buffer, os.Error) {
   lines := strings.split_lines(content)
 
   buffer := Buffer {
-    lines    = make([dynamic]string),
-    filename = filename,
-    cursor   = {0, 0},
-    modified = false,
+    lines         = make([dynamic]string),
+    filename      = filename,
+    cursor        = {0, 0},
+    modified      = false,
+    history       = make([dynamic]BufferState),
+    history_index = -1,
   }
 
 
@@ -42,6 +44,9 @@ read :: proc(filename: string) -> (Buffer, os.Error) {
   if len(buffer.lines) == 0 {
     append(&buffer.lines, "")
   }
+
+  // Save initial state for undo/redo
+  save_state(&buffer)
 
   return buffer, os.ERROR_NONE
 }
