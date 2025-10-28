@@ -100,8 +100,9 @@ input_init :: proc() {
 
   // insert mode uses fallback handler in exec() for character input
   
-  // this should need to be submitted
-  cmap["q"] = proc(e: ^Editor) {e.running = false}
+  // command mode commands
+  cmap["q"] = proc(e: ^Editor) {command_execute(&e.commands, e, "q")}
+  cmap["w"] = proc(e: ^Editor) {command_execute(&e.commands, e, "w")}
 }
 
 @(fini)

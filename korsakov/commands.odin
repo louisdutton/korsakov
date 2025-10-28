@@ -26,7 +26,6 @@ command_registry_new :: proc() -> CommandRegistry {
   command_register(&registry, "q", command_quit)
   command_register(&registry, "quit", command_quit)
   command_register(&registry, "wq", command_write_quit)
-  command_register(&registry, "x", command_write_quit)
 
   return registry
 }
