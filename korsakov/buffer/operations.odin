@@ -19,8 +19,7 @@ get_char :: proc(b: ^Buffer, position: Vec2) -> rune {
   assert(position.y < len(b.lines))
   line := b.lines[position.y]
   line_length := len(line)
-  if line_length == 0 do return ' '
-  assert(position.x < line_length)
+  if line_length == 0 || position.x >= line_length do return ' '
 
   return rune(b.lines[position.y][position.x])
 }
