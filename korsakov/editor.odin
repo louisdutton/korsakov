@@ -6,7 +6,6 @@ import "core:log"
 import "core:math"
 import "core:os"
 import "core:slice"
-import "core:sys/linux"
 import "tty"
 
 Mode :: enum {

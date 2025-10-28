@@ -2,7 +2,6 @@ package tty
 
 import "core:fmt"
 import "core:os"
-import "core:sys/linux"
 import "core:sys/posix"
 
 STDIN :: posix.FD(0)
