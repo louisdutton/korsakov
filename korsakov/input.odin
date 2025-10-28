@@ -23,11 +23,22 @@ handle_input :: proc(e: ^Editor, ch: rune) {
   }
 }
 
+// Handle input for insert mode with fallback for unmapped characters
+handle_insert_input :: proc(e: ^Editor, ch: rune) {
+  // For insert mode, insert any printable character
+  if ch >= 32 && ch <= 126 || ch == ' ' || ch == '\t' {
+    buffer.insert_char(editor_active_buffer(e), ch)
+  }
+}
+
 exec :: proc(e: ^Editor, m: ^map[string]Action, ch: rune) {
   key := utf8.runes_to_string({ch})
   defer delete(key)
   if fn := m[key]; fn != nil {
     fn(e)
+  } else if e.mode == .Insert {
+    // Fallback for insert mode: insert any printable character
+    handle_insert_input(e, ch)
   }
 }
 
@@ -53,6 +64,8 @@ input_init :: proc() {
   nmap["v"] = proc(e: ^Editor) {set_mode(e, .Visual)}
   nmap[";"] = proc(e: ^Editor) {set_mode(e, .Command)}
 
+  // insert mode uses fallback handler in exec() for character input
+  
   // this should need to be submitted
   cmap["q"] = proc(e: ^Editor) {e.running = false}
 }
