@@ -26,6 +26,7 @@ Editor :: struct {
   commands:       CommandRegistry,
   running:        bool,
   command_buffer: string, // For command mode input
+  highlighter:    Highlighter, // Syntax highlighter
 }
 
 // Creates a new interactive editor instance
@@ -40,7 +41,10 @@ editor_new :: proc() -> Editor {
     command_buffer = "",
   }
 
-  // TODO: Initialize terminal, treesitter, input maps, etc.
+  // Initialize syntax highlighter for Odin
+  if !highlighter_init(&editor.highlighter, "odin") {
+    log.warn("Failed to initialize syntax highlighter")
+  }
 
   return editor
 }
@@ -52,6 +56,7 @@ editor_destroy :: proc(editor: ^Editor) {
   }
   delete(editor.buffers)
   command_registry_destroy(&editor.commands)
+  highlighter_destroy(&editor.highlighter)
 }
 
 // Loads a file into the editor

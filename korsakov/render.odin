@@ -12,6 +12,6 @@ import "tty"
 render_editor :: proc(e: ^Editor) {
   b := editor_active_buffer(e)
 
-  render_buffer(b)
+  render_buffer(e, b)
   render_status_bar(e, b)
 }
