@@ -10,8 +10,8 @@ Action_Map :: map[string]Action
 
 Key :: enum rune {
   ESC       = 27,
-  BACKSPACE = 127,  // DEL character (typical backspace)
-  CTRL_H    = 8,    // Alternative backspace
+  BACKSPACE = 127, // DEL character (typical backspace)
+  CTRL_H    = 8, // Alternative backspace
 }
 
 // input_buffer: [8]u8 // TODO
@@ -32,7 +32,7 @@ handle_insert_input :: proc(e: ^Editor, ch: rune) {
     buffer.delete_char(editor_active_buffer(e))
     return
   }
-  
+
   // For insert mode, insert any printable character
   if ch >= 32 && ch <= 126 || ch == ' ' || ch == '\t' {
     buffer.insert_char(editor_active_buffer(e), ch)
@@ -89,17 +89,17 @@ input_init :: proc() {
     buffer.insert_line_above(editor_active_buffer(e))
     set_mode(e, .Insert)
   }
-  
+
   // other modes
   nmap["v"] = proc(e: ^Editor) {set_mode(e, .Visual)}
   nmap[";"] = proc(e: ^Editor) {set_mode(e, .Command)}
-  
+
   // undo/redo
   nmap["u"] = proc(e: ^Editor) {buffer.undo(editor_active_buffer(e))}
   nmap["U"] = proc(e: ^Editor) {buffer.redo(editor_active_buffer(e))}
 
   // insert mode uses fallback handler in exec() for character input
-  
+
   // command mode commands
   cmap["q"] = proc(e: ^Editor) {command_execute(&e.commands, e, "q")}
   cmap["w"] = proc(e: ^Editor) {command_execute(&e.commands, e, "w")}
@@ -117,7 +117,7 @@ set_mode :: proc(e: ^Editor, mode: Mode) {
   if e.mode == .Insert && mode != .Insert {
     buffer.save_state(editor_active_buffer(e))
   }
-  
+
   e.mode = mode
   log.debug("mode:", mode)
 }

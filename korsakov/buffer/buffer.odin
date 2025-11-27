@@ -11,22 +11,22 @@ BufferState :: struct {
 }
 
 Buffer :: struct {
-  lines:      [dynamic]string,
-  filename:   string,
-  filetype:   string,
-  cursor:     Vec2,
-  modified:   bool,
+  lines:         [dynamic]string,
+  filename:      string,
+  filetype:      string,
+  cursor:        Vec2,
+  modified:      bool,
 
   // sign/number column
-  x_offset:   int,
+  x_offset:      int,
 
   // viewport (this can potentially be it's own distinct entity)
-  dimensions: Vec2,
-  scroll:     Vec2,
-  
+  dimensions:    Vec2,
+  scroll:        Vec2,
+
   // undo/redo history
-  history:         [dynamic]BufferState,
-  history_index:   int,  // Current position in history
+  history:       [dynamic]BufferState,
+  history_index: int, // Current position in history
 }
 
 // Creates a new empty buffer
@@ -42,7 +42,7 @@ new :: proc() -> Buffer {
   }
 
   append(&buffer.lines, "")
-  
+
   // Save initial state
   save_state(&buffer)
 
@@ -55,7 +55,7 @@ destroy :: proc(b: ^Buffer) {
     delete(line)
   }
   delete(b.lines)
-  
+
   // Clean up history
   for &state in b.history {
     for line in state.lines {
@@ -85,20 +85,20 @@ save_state :: proc(b: ^Buffer) {
     }
     resize(&b.history, b.history_index + 1)
   }
-  
+
   // Create a deep copy of current state
-  state := BufferState{
+  state := BufferState {
     lines  = make([dynamic]string),
     cursor = b.cursor,
   }
-  
+
   for line in b.lines {
     append(&state.lines, strings.clone(line))
   }
-  
+
   append(&b.history, state)
   b.history_index = len(b.history) - 1
-  
+
   // Limit history size to prevent excessive memory usage
   MAX_HISTORY :: 100
   if len(b.history) > MAX_HISTORY {
@@ -118,7 +118,7 @@ undo :: proc(b: ^Buffer) -> bool {
   if b.history_index <= 0 {
     return false // Nothing to undo
   }
-  
+
   b.history_index -= 1
   restore_state(b, &b.history[b.history_index])
   return true
@@ -129,7 +129,7 @@ redo :: proc(b: ^Buffer) -> bool {
   if b.history_index >= len(b.history) - 1 {
     return false // Nothing to redo
   }
-  
+
   b.history_index += 1
   restore_state(b, &b.history[b.history_index])
   return true
@@ -142,12 +142,12 @@ restore_state :: proc(b: ^Buffer, state: ^BufferState) {
     delete(line)
   }
   clear(&b.lines)
-  
+
   // Restore lines from state
   for line in state.lines {
     append(&b.lines, strings.clone(line))
   }
-  
+
   // Restore cursor position
   b.cursor = state.cursor
   b.modified = true

@@ -5,7 +5,7 @@ import "core:os"
 import "core:sys/posix"
 import "core:sys/unix"
 
-@private
+@(private)
 STDOUT :: uintptr(posix.STDOUT_FILENO)
 
 Winsize :: struct {
@@ -20,10 +20,10 @@ get_terminal_size :: proc() -> [2]int {
   ws: Winsize
 
   when ODIN_OS == .Linux {
-    TIOCGWINSZ :uintptr: 0x5413
+    TIOCGWINSZ: uintptr : 0x5413
     SYS_ioctl :: 16
   } else when ODIN_OS == .Darwin {
-    TIOCGWINSZ :uintptr: 0x40087468
+    TIOCGWINSZ: uintptr : 0x40087468
     SYS_ioctl :: 54
   }
 
