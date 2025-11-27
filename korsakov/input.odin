@@ -1,6 +1,7 @@
 package korsakov
 
 import "buffer"
+import "core:fmt"
 import "core:log"
 import "core:unicode/utf8"
 import "tty"
@@ -12,6 +13,7 @@ Key :: enum rune {
   ESC       = 27,
   BACKSPACE = 127, // DEL character (typical backspace)
   CTRL_H    = 8, // Alternative backspace
+  ENTER     = 10, // Newline/Enter key
 }
 
 // input_buffer: [8]u8 // TODO
@@ -39,6 +41,34 @@ handle_insert_input :: proc(e: ^Editor, ch: rune) {
   }
 }
 
+// Handle input for command mode - buffers characters
+handle_command_input :: proc(e: ^Editor, ch: rune) {
+  // Handle backspace/delete
+  if Key(ch) == .BACKSPACE || Key(ch) == .CTRL_H {
+    if len(e.command_buffer) > 0 {
+      // Remove last character from command buffer
+      runes := utf8.string_to_runes(e.command_buffer)
+      defer delete(runes)
+      old_buffer := e.command_buffer
+      e.command_buffer = utf8.runes_to_string(runes[:len(runes) - 1])
+      if len(old_buffer) > 0 {
+        delete(old_buffer)
+      }
+    }
+    return
+  }
+
+  // For command mode, append any printable character to command buffer
+  if ch >= 32 && ch <= 126 || ch == ' ' || ch == '\t' {
+    old_buffer := e.command_buffer
+    // Use aprintf which allocates on the heap, not temp allocator
+    e.command_buffer = fmt.aprintf("%s%c", e.command_buffer, ch)
+    if len(old_buffer) > 0 {
+      delete(old_buffer)
+    }
+  }
+}
+
 exec :: proc(e: ^Editor, m: ^map[string]Action, ch: rune) {
   key := utf8.runes_to_string({ch})
   defer delete(key)
@@ -47,6 +77,9 @@ exec :: proc(e: ^Editor, m: ^map[string]Action, ch: rune) {
   } else if e.mode == .Insert {
     // Fallback for insert mode: insert any printable character
     handle_insert_input(e, ch)
+  } else if e.mode == .Command {
+    // Fallback for command mode: buffer the character
+    handle_command_input(e, ch)
   }
 }
 
@@ -100,9 +133,13 @@ input_init :: proc() {
 
   // insert mode uses fallback handler in exec() for character input
 
-  // command mode commands
-  cmap["q"] = proc(e: ^Editor) {command_execute(&e.commands, e, "q")}
-  cmap["w"] = proc(e: ^Editor) {command_execute(&e.commands, e, "w")}
+  // command mode - Enter key executes the buffered command
+  cmap["\n"] = proc(e: ^Editor) {
+    if len(e.command_buffer) > 0 {
+      command_execute(&e.commands, e, e.command_buffer)
+    }
+    set_mode(e, .Navigate)
+  }
 }
 
 @(fini)
@@ -116,6 +153,22 @@ set_mode :: proc(e: ^Editor, mode: Mode) {
   // Save state when exiting insert mode (after changes were made)
   if e.mode == .Insert && mode != .Insert {
     buffer.save_state(editor_active_buffer(e))
+  }
+
+  // Clear command buffer when entering command mode
+  if mode == .Command {
+    if len(e.command_buffer) > 0 {
+      delete(e.command_buffer)
+    }
+    e.command_buffer = ""
+  }
+
+  // Clean up command buffer when exiting command mode
+  if e.mode == .Command && mode != .Command {
+    if len(e.command_buffer) > 0 {
+      delete(e.command_buffer)
+    }
+    e.command_buffer = ""
   }
 
   e.mode = mode

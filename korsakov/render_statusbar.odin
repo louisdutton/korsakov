@@ -52,6 +52,12 @@ render_status_bar :: proc(editor: ^Editor, b: ^buffer.Buffer) {
     fmt.tprintf(" scr=%d:%d", b.scroll.y, b.scroll.x),
   )
 
+  // Command buffer (shown when in command mode)
+  if editor.mode == .Command {
+    strings.write_string(&status_builder, " :")
+    strings.write_string(&status_builder, editor.command_buffer)
+  }
+
   status := strings.to_string(status_builder)
 
   // Print status and pad to full width
