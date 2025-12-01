@@ -27,18 +27,22 @@ Buffer :: struct {
   // undo/redo history
   history:       [dynamic]BufferState,
   history_index: int, // Current position in history
+
+  // syntax highlighting cache
+  needs_highlight: bool, // true when buffer content changes
 }
 
 // Creates a new empty buffer
 new :: proc() -> Buffer {
   buffer := Buffer {
-    lines         = make([dynamic]string), // must have at least one empty line
-    filename      = "",
-    cursor        = {0, 0},
-    modified      = false,
-    scroll        = 0,
-    history       = make([dynamic]BufferState),
-    history_index = -1,
+    lines           = make([dynamic]string), // must have at least one empty line
+    filename        = "",
+    cursor          = {0, 0},
+    modified        = false,
+    scroll          = 0,
+    history         = make([dynamic]BufferState),
+    history_index   = -1,
+    needs_highlight = true,
   }
 
   append(&buffer.lines, "")
@@ -151,4 +155,5 @@ restore_state :: proc(b: ^Buffer, state: ^BufferState) {
   // Restore cursor position
   b.cursor = state.cursor
   b.modified = true
+  b.needs_highlight = true
 }

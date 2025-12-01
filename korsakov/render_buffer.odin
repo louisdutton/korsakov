@@ -47,12 +47,13 @@ get_byte_offset :: proc(b: ^buffer.Buffer, line: int, col: int) -> u32 {
 
 // Renders the buffer content with syntax highlighting
 render_buffer :: proc(e: ^Editor, b: ^buffer.Buffer) {
-  // Get the full buffer content for highlighting
-  content := get_buffer_content(b)
-  defer delete(content)
-
-  // Update highlights
-  highlighter_highlight_buffer(&e.highlighter, content)
+  // Only re-highlight if buffer content has changed
+  if b.needs_highlight {
+    content := get_buffer_content(b)
+    defer delete(content)
+    highlighter_highlight_buffer(&e.highlighter, content)
+    b.needs_highlight = false
+  }
 
   for i in 0 ..< b.dimensions.y {
     tty.cursor_move(0, i)

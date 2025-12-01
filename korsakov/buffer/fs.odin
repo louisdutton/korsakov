@@ -27,12 +27,13 @@ read :: proc(filename: string) -> (Buffer, os.Error) {
   lines := strings.split_lines(content)
 
   buffer := Buffer {
-    lines         = make([dynamic]string),
-    filename      = filename,
-    cursor        = {0, 0},
-    modified      = false,
-    history       = make([dynamic]BufferState),
-    history_index = -1,
+    lines           = make([dynamic]string),
+    filename        = filename,
+    cursor          = {0, 0},
+    modified        = false,
+    history         = make([dynamic]BufferState),
+    history_index   = -1,
+    needs_highlight = true,
   }
 
 
@@ -73,6 +74,7 @@ write :: proc(buffer: ^Buffer) -> os.Error {
 
   if ok {
     buffer.modified = false
+    buffer.needs_highlight = true
     return os.ERROR_NONE
   }
 

@@ -34,6 +34,7 @@ set_line :: proc(b: ^Buffer, line_idx: int, content: string) {
     delete(b.lines[line_idx])
     b.lines[line_idx] = strings.clone(content)
     b.modified = true
+    b.needs_highlight = true
   }
 }
 
@@ -66,6 +67,7 @@ insert_char :: proc(b: ^Buffer, ch: rune) {
 
     b.cursor.x += 1
     b.modified = true
+    b.needs_highlight = true
   }
 }
 
@@ -100,6 +102,7 @@ delete_char :: proc(b: ^Buffer) {
 
       b.cursor.x -= 1
       b.modified = true
+      b.needs_highlight = true
     }
   }
 }
@@ -112,6 +115,7 @@ insert_line_below :: proc(b: ^Buffer) {
     b.cursor.y = new_line_idx
     b.cursor.x = 0
     b.modified = true
+    b.needs_highlight = true
   }
 }
 
@@ -122,6 +126,7 @@ insert_line_above :: proc(b: ^Buffer) {
     // cursor.y stays the same since we inserted above
     b.cursor.x = 0
     b.modified = true
+    b.needs_highlight = true
   }
 }
 
@@ -160,5 +165,6 @@ split_line :: proc(b: ^Buffer) {
     b.cursor.y = new_line_idx
     b.cursor.x = 0
     b.modified = true
+    b.needs_highlight = true
   }
 }
