@@ -182,12 +182,28 @@ highlighter_highlight_buffer :: proc(h: ^Highlighter, content: string) {
 }
 
 // Get the highlight color for a specific byte position
+// Uses binary search since tokens are sorted by start_byte
 highlighter_get_color_at :: proc(h: ^Highlighter, byte_pos: u32) -> string {
-  for token in h.tokens {
-    if byte_pos >= token.start_byte && byte_pos < token.end_byte {
+  tokens := h.tokens[:]
+  left, right := 0, len(tokens)
+
+  // Binary search for the token containing byte_pos
+  for left < right {
+    mid := (left + right) / 2
+    token := &tokens[mid]
+
+    if byte_pos < token.start_byte {
+      // Position is before this token, search left half
+      right = mid
+    } else if byte_pos >= token.end_byte {
+      // Position is after this token, search right half
+      left = mid + 1
+    } else {
+      // Found the token containing this position
       return token.color
     }
   }
+
   return ansi.FG_WHITE // Default color
 }
 
