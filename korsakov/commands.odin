@@ -1,7 +1,7 @@
 package korsakov
 
 import "buffer"
-import "core:fmt"
+import "core:log"
 import "core:slice"
 import "core:strings"
 
@@ -57,17 +57,13 @@ command_execute :: proc(
   editor: ^Editor,
   command_line: string,
 ) {
-  if len(command_line) == 0 {
-    return
-  }
+  if len(command_line) == 0 do return
 
   // Parse command and arguments
   parts := strings.split(command_line, " ")
   defer delete(parts)
 
-  if len(parts) == 0 {
-    return
-  }
+  if len(parts) == 0 do return
 
   command_name := parts[0]
   args := parts[1:]
@@ -81,47 +77,36 @@ command_execute :: proc(
   }
 
   // Command not found
-  fmt.printf("Unknown command: %s\n", command_name)
+  log.errorf("Unknown command: %s\n", command_name)
 }
 
 // Default command implementations
 
 // Write command - saves the current buffer
-command_write :: proc(editor: ^Editor, args: []string) {
-  if b := editor_active_buffer(editor); b != nil {
-    if err := buffer.write(b); err != 0 {
-      fmt.printf("Error saving file: %v\n", err)
-    } else {
-      fmt.println("File saved")
-    }
+command_write :: proc(e: ^Editor, args: []string) {
+  b := editor_active_buffer(e)
+  if b == nil do return
+  if err := buffer.write(b); err != 0 {
+    log.errorf("Error saving file: %v\n", err)
+    return
   }
+
+  log.info("File saved")
 }
 
 // Quit command - exits the editor
-command_quit :: proc(editor: ^Editor, args: []string) {
-  // Check if any buffers are modified
-  has_unsaved := false
-  for &b in editor.buffers {
+command_quit :: proc(e: ^Editor, args: []string) {
+  for &b in e.buffers {
     if b.modified {
-      has_unsaved = true
-      break
-    }
-  }
-
-  if has_unsaved {
-    fmt.println("No write since last change (add ! to override)")
-  } else {
-    editor.running = false
-  }
-}
-
-// Write and quit command - saves then exits
-command_write_quit :: proc(editor: ^Editor, args: []string) {
-  if b := editor_active_buffer(editor); b != nil {
-    if err := buffer.write(b); err != 0 {
-      fmt.printf("Error saving file: %v\n", err)
+      log.error("No write since last change (add ! to override)")
       return
     }
   }
-  editor.running = false
+  e.running = false
+}
+
+// Write and quit command - saves then exits
+command_write_quit :: proc(e: ^Editor, args: []string) {
+  command_write(e, args)
+  command_quit(e, args)
 }

@@ -10,21 +10,30 @@ Action :: proc(e: ^Editor)
 Action_Map :: map[string]Action
 
 Key :: enum rune {
+  EOF       = 4,
+  SIGINT    = 5,
   ESC       = 27,
   BACKSPACE = 127, // DEL character (typical backspace)
   CTRL_H    = 8, // Alternative backspace
-  ENTER     = 10, // Newline/Enter key
+  ENTER     = 13, // Carriage Return (what terminals actually send)
+  LF        = 10, // Line Feed (Unix newline in files)
 }
 
 // input_buffer: [8]u8 // TODO
 keymaps: [Mode]Action_Map
 
 handle_input :: proc(e: ^Editor, ch: rune) {
-  if Key(ch) == .ESC && e.mode != .Navigate {
-    set_mode(e, .Navigate)
-  } else {
+  log.debugf("Received char: %d (0x%x) mode: %v", ch, ch, e.mode)
+
+  // global bindings
+  #partial switch Key(ch) {
+  case .ESC:
+    if e.mode != .Navigate do set_mode(e, .Navigate)
+  case .SIGINT, .EOF: e.running = false
+  case:
     exec(e, &keymaps[e.mode], ch)
   }
+
 }
 
 // Handle input for insert mode with fallback for unmapped characters
@@ -131,13 +140,14 @@ input_init :: proc() {
   nmap["u"] = proc(e: ^Editor) {buffer.undo(editor_active_buffer(e))}
   nmap["U"] = proc(e: ^Editor) {buffer.redo(editor_active_buffer(e))}
 
-  // insert mode uses fallback handler in exec() for character input
+  // insert mode - Enter key splits the current line
+  imap["\r"] = proc(e: ^Editor) {
+    buffer.split_line(editor_active_buffer(e))
+  }
 
   // command mode - Enter key executes the buffered command
-  cmap["\n"] = proc(e: ^Editor) {
-    if len(e.command_buffer) > 0 {
-      command_execute(&e.commands, e, e.command_buffer)
-    }
+  cmap["\r"] = proc(e: ^Editor) {
+    command_execute(&e.commands, e, e.command_buffer)
     set_mode(e, .Navigate)
   }
 }
@@ -150,21 +160,15 @@ init_fini :: proc() {
 }
 
 set_mode :: proc(e: ^Editor, mode: Mode) {
+  assert(e.mode != mode)
+
   // Save state when exiting insert mode (after changes were made)
-  if e.mode == .Insert && mode != .Insert {
+  if e.mode == .Insert {
     buffer.save_state(editor_active_buffer(e))
   }
 
-  // Clear command buffer when entering command mode
-  if mode == .Command {
-    if len(e.command_buffer) > 0 {
-      delete(e.command_buffer)
-    }
-    e.command_buffer = ""
-  }
-
-  // Clean up command buffer when exiting command mode
-  if e.mode == .Command && mode != .Command {
+  // Clear cmd buffer when entering or leaving command mode
+  if mode == .Command || e.mode == .Command {
     if len(e.command_buffer) > 0 {
       delete(e.command_buffer)
     }

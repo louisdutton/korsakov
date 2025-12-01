@@ -52,7 +52,7 @@ read :: proc(filename: string) -> (Buffer, os.Error) {
 }
 
 // Saves the buffer to its file
-write :: proc(buffer: ^Buffer) -> os.Errno {
+write :: proc(buffer: ^Buffer) -> os.Error {
   if len(buffer.filename) == 0 {
     return os.EINVAL
   }

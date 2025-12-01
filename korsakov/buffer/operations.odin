@@ -132,3 +132,33 @@ cursor_to_line_end :: proc(b: ^Buffer) {
     b.cursor.x = len(line)
   }
 }
+
+// Splits the current line at the cursor position (like pressing ENTER)
+// Text before cursor stays on current line, text after cursor moves to new line below
+split_line :: proc(b: ^Buffer) {
+  if b.cursor.y >= 0 && b.cursor.y < len(b.lines) {
+    line := b.lines[b.cursor.y]
+
+    // Convert to runes for proper Unicode handling
+    runes := utf8.string_to_runes(line)
+    defer delete(runes)
+
+    // Split at cursor position
+    before_cursor := runes[:b.cursor.x]
+    after_cursor := runes[b.cursor.x:]
+
+    // Update current line to only contain text before cursor
+    delete(b.lines[b.cursor.y])
+    b.lines[b.cursor.y] = utf8.runes_to_string(before_cursor)
+
+    // Create new line below with text after cursor
+    new_line_idx := b.cursor.y + 1
+    new_line := utf8.runes_to_string(after_cursor)
+    inject_at(&b.lines, new_line_idx, new_line)
+
+    // Move cursor to start of new line
+    b.cursor.y = new_line_idx
+    b.cursor.x = 0
+    b.modified = true
+  }
+}
