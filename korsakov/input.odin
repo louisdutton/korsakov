@@ -10,12 +10,12 @@ Action :: proc(e: ^Editor)
 Action_Map :: map[string]Action
 
 Key :: enum rune {
-  EOF       = 4,
-  SIGINT    = 5,
+  SIGINT    = 3, // Ctrl-C
+  EOF       = 4, // Ctrl-D
   ESC       = 27,
   BACKSPACE = 127, // DEL character (typical backspace)
   CTRL_H    = 8, // Alternative backspace
-  ENTER     = 13, // Carriage Return (what terminals actually send)
+  CR        = 13, // Carriage Return (what terminals actually send)
   LF        = 10, // Line Feed (Unix newline in files)
 }
 
@@ -84,10 +84,8 @@ exec :: proc(e: ^Editor, m: ^map[string]Action, ch: rune) {
   if fn := m[key]; fn != nil {
     fn(e)
   } else if e.mode == .Insert {
-    // Fallback for insert mode: insert any printable character
     handle_insert_input(e, ch)
   } else if e.mode == .Command {
-    // Fallback for command mode: buffer the character
     handle_command_input(e, ch)
   }
 }
