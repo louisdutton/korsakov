@@ -93,8 +93,6 @@ render_buffer :: proc(e: ^Editor, b: ^buffer.Buffer) {
 
     tty.clear_line()
   }
-
-  render_cursor(b)
 }
 
 // Renders a line with syntax highlighting

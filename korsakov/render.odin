@@ -14,4 +14,5 @@ render_editor :: proc(e: ^Editor) {
 
   render_buffer(e, b)
   render_status_bar(e, b)
+  render_cursor(b, e.mode) // must be rendered last
 }
