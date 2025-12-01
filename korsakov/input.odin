@@ -139,13 +139,27 @@ input_init :: proc() {
   nmap["U"] = proc(e: ^Editor) {buffer.redo(editor_active_buffer(e))}
 
   // insert mode - Enter key splits the current line
-  imap["\r"] = proc(e: ^Editor) {
-    buffer.split_line(editor_active_buffer(e))
-  }
+  imap["\r"] = proc(e: ^Editor) {buffer.split_line(editor_active_buffer(e))}
 
   // command mode - Enter key executes the buffered command
   cmap["\r"] = proc(e: ^Editor) {
     command_execute(&e.commands, e, e.command_buffer)
+    set_mode(e, .Navigate)
+  }
+
+  // visual mode - cursor movement
+  vmap["j"] = proc(e: ^Editor) {buffer.cursor_down(editor_active_buffer(e))}
+  vmap["k"] = proc(e: ^Editor) {buffer.cursor_up(editor_active_buffer(e))}
+  vmap["h"] = proc(e: ^Editor) {buffer.cursor_left(editor_active_buffer(e))}
+  vmap["l"] = proc(e: ^Editor) {buffer.cursor_right(editor_active_buffer(e))}
+  vmap["J"] = proc(e: ^Editor) {buffer.cursor_ymax(editor_active_buffer(e))}
+  vmap["K"] = proc(e: ^Editor) {buffer.cursor_ymin(editor_active_buffer(e))}
+  vmap["H"] = proc(e: ^Editor) {buffer.cursor_xmin(editor_active_buffer(e))}
+  vmap["L"] = proc(e: ^Editor) {buffer.cursor_xmax(editor_active_buffer(e))}
+
+  // visual mode - delete selection
+  vmap["d"] = proc(e: ^Editor) {
+    buffer.delete_selection(editor_active_buffer(e))
     set_mode(e, .Navigate)
   }
 }
@@ -171,6 +185,12 @@ set_mode :: proc(e: ^Editor, mode: Mode) {
       delete(e.command_buffer)
     }
     e.command_buffer = ""
+  }
+
+  // Set visual anchor when entering visual mode
+  if mode == .Visual {
+    b := editor_active_buffer(e)
+    b.visual_anchor = b.cursor
   }
 
   e.mode = mode

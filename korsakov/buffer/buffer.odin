@@ -30,6 +30,9 @@ Buffer :: struct {
 
   // syntax highlighting cache
   needs_highlight: bool, // true when buffer content changes
+
+  // visual mode selection
+  visual_anchor: Vec2, // starting point of visual selection
 }
 
 // Creates a new empty buffer
@@ -43,6 +46,7 @@ new :: proc() -> Buffer {
     history         = make([dynamic]BufferState),
     history_index   = -1,
     needs_highlight = true,
+    visual_anchor   = {0, 0},
   }
 
   append(&buffer.lines, "")
