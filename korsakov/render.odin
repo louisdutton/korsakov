@@ -12,6 +12,10 @@ import "tty"
 render_editor :: proc(e: ^Editor) {
   b := editor_active_buffer(e)
 
+  // Buffer all terminal output for a single flush
+  tty.begin_buffering()
+  defer tty.end_buffering()
+
   render_buffer(e, b)
   render_status_bar(e, b)
   render_cursor(b, e.mode) // must be rendered last

@@ -1,7 +1,6 @@
 package korsakov
 
 import "buffer"
-import "core:os"
 import "tty"
 
 render_cursor :: proc(b: ^buffer.Buffer, mode: Mode) {
@@ -12,7 +11,7 @@ render_cursor :: proc(b: ^buffer.Buffer, mode: Mode) {
     tty.cursor_hide()
     tty.sgr_invert()
     char := buffer.get_current_char(b)
-    os.write_rune(os.stdout, char)
+    tty.write_rune(char)
     tty.sgr_reset()
 
   // Bar cursor - (native)

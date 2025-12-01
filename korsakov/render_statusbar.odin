@@ -61,7 +61,7 @@ render_status_bar :: proc(editor: ^Editor, b: ^buffer.Buffer) {
   status := strings.to_string(status_builder)
 
   // Print status and pad to full width
-  fmt.print(status)
+  tty.write(status)
   padding := editor.size.x - len(status)
   for i in 0 ..< padding {
     tty.write(" ")
